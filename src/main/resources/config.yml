@@ -1,0 +1,99 @@
+xpConfig:
+  mining:
+    STONE:        2.0
+    COAL_ORE:     4.0
+    IRON_ORE:     5.0
+    GOLD_ORE:     7.0
+    DIAMOND_ORE: 15.0
+
+  woodcutting:
+    OAK_LOG:    3.0
+    BIRCH_LOG:  3.0
+    SPRUCE_LOG: 3.5
+
+  farming:
+    WHEAT:     4.0
+    CARROTS:   2.0
+    POTATOES:  3.0
+
+  fishing:
+    fish:     3.0
+    junk:     1.0
+    treasure: 5.0
+
+  exploring:
+    blocksPerXp: 16
+    xpPerUnit:   4.0
+
+  sailing:
+    blocksPerXp: 16
+    xpPerUnit:   4.0
+# Rewards for skilling
+rewards:
+  MINING:
+    1:
+      - "eco give %player% 10"
+    2:
+      - "eco give %player% 20"
+    3:
+      - "eco give %player% 30"
+    # …
+    50:
+      - "broadcast %player% has just mastered MINING!"
+  COMBAT:
+    10:
+      - "kit give %player% warrior_sword"
+    50:
+      - "broadcast %player% has just mastered COMBAT!"
+# xp‑table voor level‑ups
+xp-table:
+  '1':   0
+  '2':   83
+  '3':   174
+  '4':   276
+  '5':   388
+  '6':   512
+  '7':   650
+  '8':   801
+  '9':   969
+  '10':  1154
+  '11':  1358
+  '12':  1584
+  '13':  1833
+  '14':  2107
+  '15':  2411
+  '16':  2746
+  '17':  3115
+  '18':  3523
+  '19':  3973
+  '20':  4470
+  '21':  5018
+  '22':  5624
+  '23':  6291
+  '24':  7028
+  '25':  7842
+  '26':  8740
+  '27':  9730
+  '28':  10824
+  '29':  12031
+  '30':  13363
+  '31':  14833
+  '32':  16456
+  '33':  18247
+  '34':  20224
+  '35':  22406
+  '36':  24815
+  '37':  27473
+  '38':  30408
+  '39':  33648
+  '40':  37224
+  '41':  41171
+  '42':  45529
+  '43':  50339
+  '44':  55649
+  '45':  61512
+  '46':  67983
+  '47':  75127
+  '48':  83014
+  '49':  91721
+  '50':  101333

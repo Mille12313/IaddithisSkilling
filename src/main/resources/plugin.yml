@@ -1,0 +1,21 @@
+name: IaddithisSkilling
+main: bloody.devmules.iaddithisSkilling.IaddithisSkilling
+version: "0.01-SNAPSHOT"
+api-version: "1.21"
+depend:
+  - PlaceholderAPI
+commands:
+  skills:
+    description: Show your skill levels.
+  highscore:
+    description: Show the global highscore (top 10).
+  togglenotifications:
+    description: Toggle XP & level‑up notifications.
+    aliases: [togglexp, xpnotifications]
+  iaddithisskilling:
+    description: Reload plugin configuration.
+    aliases: [reloadskill]
+permissions:
+  iaddithisskilling.reload:
+    description: Allows reloading the plugin.
+    default: op
