@@ -7,7 +7,7 @@
 
     <groupId>bloody.devmules</groupId>
     <artifactId>SkillPlugin</artifactId>
-    <version>0.01-SNAPSHOT</version>
+    <version>1.01-IaddithisSkilling</version>
     <packaging>jar</packaging>
 
     <name>SkillPlugin</name>

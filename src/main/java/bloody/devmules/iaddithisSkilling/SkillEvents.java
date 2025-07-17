@@ -98,7 +98,10 @@ public class SkillEvents implements Listener {
         Player p = (Player) e.getDamager();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
 
-        double xp = Math.round(e.getDamage() * 2.0);
+        // Only give XP if actual damage is dealt
+        if (e.getFinalDamage() <= 0) return;
+
+        double xp = Math.round(e.getFinalDamage() * 2.0);
         if (xp > 0) {
             SkillManager.addXP(p, "COMBAT", xp);
             sendXp(p, xp, "COMBAT");
@@ -148,7 +151,7 @@ public class SkillEvents implements Listener {
         FileConfiguration cfg = IaddithisSkilling.getInstance().getConfig();
         ConfigurationSection xpCfg = cfg.getConfigurationSection("xpConfig");
 
-        // Sailing
+        // Sailing (in boat, still allowed)
         if (p.isInsideVehicle() && p.getVehicle() instanceof Boat) {
             Location loc = to.getBlock().getLocation();
             Location last = lastBoat.get(u);
@@ -172,25 +175,27 @@ public class SkillEvents implements Listener {
             return;
         }
 
-        // Exploration
-        Location loc = to.getBlock().getLocation();
-        Location last = lastStep.get(u);
-        int cnt = stepCount.getOrDefault(u, 0);
+        // Exploration: ONLY on foot, NOT in any vehicle (no horses, no boats, no minecarts etc)
+        if (!p.isInsideVehicle()) {
+            Location loc = to.getBlock().getLocation();
+            Location last = lastStep.get(u);
+            int cnt = stepCount.getOrDefault(u, 0);
 
-        if (last == null) {
-            lastStep.put(u, loc);
-            stepCount.put(u, 0);
-        } else if (!loc.equals(last)) {
-            cnt++;
-            int per = xpCfg.getInt("exploring.blocksPerXp", 16);
-            if (cnt >= per) {
-                double xp = xpCfg.getDouble("exploring.xpPerUnit", 0.0);
-                SkillManager.addXP(p, "EXPLORATION", xp);
-                sendXp(p, xp, "EXPLORATION");
-                cnt = 0;
+            if (last == null) {
+                lastStep.put(u, loc);
+                stepCount.put(u, 0);
+            } else if (!loc.equals(last)) {
+                cnt++;
+                int per = xpCfg.getInt("exploring.blocksPerXp", 16);
+                if (cnt >= per) {
+                    double xp = xpCfg.getDouble("exploring.xpPerUnit", 0.0);
+                    SkillManager.addXP(p, "EXPLORATION", xp);
+                    sendXp(p, xp, "EXPLORATION");
+                    cnt = 0;
+                }
+                stepCount.put(u, cnt);
+                lastStep.put(u, loc);
             }
-            stepCount.put(u, cnt);
-            lastStep.put(u, loc);
         }
     }
 
@@ -209,7 +214,11 @@ public class SkillEvents implements Listener {
         var data = IaddithisSkilling.getInstance().getData();
         boolean notif = data.getBoolean(p.getUniqueId() + ".settings.xpNotifications", true);
         if (notif) {
-            p.sendMessage("✨ +" + (int) xp + " " + skill + " XP");
+            // ActionBar i.p.v. chat
+            p.spigot().sendMessage(
+                    net.md_5.bungee.api.ChatMessageType.ACTION_BAR,
+                    new net.md_5.bungee.api.chat.TextComponent("✨ +" + (int) xp + " " + skill + " XP")
+            );
         }
     }
 }

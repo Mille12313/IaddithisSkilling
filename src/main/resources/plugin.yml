@@ -17,7 +17,14 @@ commands:
   iaddithisskilling:
     description: Reload plugin configuration.
     aliases: [reloadskill]
+  resetskill:
+    description: Reset a skill for all players.
+    usage: /resetskill <skill>
+    permission: iaddithisskilling.resetskill
 permissions:
   iaddithisskilling.reload:
     description: Allows reloading the plugin.
+    default: op
+  iaddithisskilling.resetskill:
+    description: Allows resetting a skill for all players.
     default: op

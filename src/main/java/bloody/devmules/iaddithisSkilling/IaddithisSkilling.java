@@ -1,4 +1,3 @@
-// src/main/java/bloody/devmules/iaddithisSkilling/IaddithisSkilling.java
 package bloody.devmules.iaddithisSkilling;
 
 import org.bukkit.configuration.file.FileConfiguration;
@@ -39,6 +38,7 @@ public class IaddithisSkilling extends JavaPlugin {
         getCommand("highscore").setExecutor(new HighscoreCommand());
         getCommand("togglenotifications").setExecutor(new ToggleNotificationCommand());
         getCommand("iaddithisskilling").setExecutor(new ReloadCommand());
+        getCommand("resetskill").setExecutor(new SkillResetCommand()); // <--- DIT WAS JE VERGETEN
 
         getLogger().info("IaddithisSkilling enabled.");
     }
