@@ -1,31 +1,67 @@
-// src/main/java/bloody/devmules/iaddithisSkilling/SkillsCommand.java
 package bloody.devmules.iaddithisSkilling;
 
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
+import java.util.TreeMap;
+
 public class SkillsCommand implements CommandExecutor {
+    private static final String[] ALL_SKILLS = {
+            "MINING", "WOODCUTTING", "FARMING",
+            "COMBAT", "EXPLORATION", "SAILING",
+            "FISHING", "SLAYER"
+    };
+
+    // PROGRESSBAR utility
+    private String progressBar(double current, double max, int bars) {
+        double percent = Math.max(0, Math.min(1, current / max));
+        int filled = (int)Math.round(bars * percent);
+        String bar = "§a" + "█".repeat(filled) + "§7" + "░".repeat(bars - filled);
+        return "§8[" + bar + "§8]";
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
-            return true;
-        }
-        Player p = (Player) sender;
         FileConfiguration data = IaddithisSkilling.getInstance().getData();
-        int maxLevel = IaddithisSkilling.getInstance().getConfig().getInt("max-level", 50);
+        FileConfiguration cfg = IaddithisSkilling.getInstance().getConfig();
+        int maxLevel = cfg.getInt("max-level", 50);
 
-        p.sendMessage("§6Your skills:");
-        for (String skill : new String[]{
-                "MINING", "WOODCUTTING", "FARMING",
-                "COMBAT", "EXPLORATION", "SAILING",
-                "FISHING", "SLAYER"
-        }) {
-            int lvl = data.getInt(p.getUniqueId() + "." + skill + ".level", 1);
-            p.sendMessage("§e" + skill + ": §a" + lvl + "§7/§e" + maxLevel);
+        OfflinePlayer target;
+        if (args.length > 0) {
+            target = Bukkit.getOfflinePlayer(args[0]);
+            if (target == null || (!target.hasPlayedBefore() && !target.isOnline())) {
+                sender.sendMessage("§cPlayer not found!");
+                return true;
+            }
+        } else {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("Only players can use this command without arguments.");
+                return true;
+            }
+            target = (Player) sender;
+        }
+
+        String name = target.getName() != null ? target.getName() : target.getUniqueId().toString();
+        sender.sendMessage("§6Skills of " + name + ":");
+        TreeMap<Integer, Integer> xpTable = SkillManager.getXpTable();
+
+        for (String skill : ALL_SKILLS) {
+            String base = target.getUniqueId() + "." + skill;
+            int lvl = data.getInt(base + ".level", 1);
+            double xp = data.getDouble(base + ".xp", 0.0);
+            int nextLevel = lvl + 1;
+            int xpThisLevel = xpTable.getOrDefault(lvl, 0);
+            int xpNextLevel = xpTable.getOrDefault(nextLevel, xpTable.lastEntry().getValue());
+            int progress = (int) (xp - xpThisLevel);
+            int needed = xpNextLevel - xpThisLevel;
+            String bar = progressBar(progress, needed, 10);
+            sender.sendMessage("§e" + skill + ": §a" + lvl + "§7/§e" + maxLevel +
+                    " " + bar + " §8(" + progress + "/" + needed + " XP)");
         }
         return true;
     }

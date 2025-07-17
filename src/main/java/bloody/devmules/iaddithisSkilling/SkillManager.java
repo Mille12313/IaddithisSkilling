@@ -26,6 +26,11 @@ public class SkillManager {
         }
     }
 
+    /** Geeft toegang tot de XP_TABLE voor andere klassen (bv. progress bar in skills command) */
+    public static TreeMap<Integer, Integer> getXpTable() {
+        return XP_TABLE;
+    }
+
     /**
      * Geef spelers xp voor een skill, sla op, check level‑up, voer rewards uit.
      */
