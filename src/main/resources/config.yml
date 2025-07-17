@@ -1,25 +1,54 @@
 xpConfig:
   mining:
-    STONE:        2.0
-    COAL_ORE:     4.0
-    IRON_ORE:     5.0
-    GOLD_ORE:     7.0
-    DIAMOND_ORE: 15.0
+    TUFF:        3.5
+    STONE:        5.0
+    ANDESITE:        5.0
+    GRANITE:        5.0
+    DIORITE:        5.0
+    DEEPSLATE:        7.0
+    COAL_ORE:     24.5
+    REDSTONE_ORE:     16.5
+    DEEPSLATE_REDSTONE_ORE:     18.2
+    LAPIS_ORE:     16.5
+    DEEPSLATE_LAPIS_ORE:     16.5
+    DEEPSLATE_COAL_ORE:     26.5
+    COPPER_ORE:    17.5
+    DEEPSLATE_COPPER_ORE:    18.9
+    IRON_ORE:     40.0
+    DEEPSLATE_IRON_ORE:     43.0
+    GOLD_ORE:     80.0
+    DEEPSLATE_GOLD_ORE:     86.0
+    DIAMOND_ORE: 95.0
+    DEEPSLATE_DIAMOND_ORE: 102.6
+    EMERALD_ORE: 125.0
+    DEEPSLATE_EMERALD_ORE: 135.0
 
   woodcutting:
-    OAK_LOG:    3.0
-    BIRCH_LOG:  3.0
-    SPRUCE_LOG: 3.5
+    OAK_LOG: 8.0
+    BIRCH_LOG: 8.0
+    SPRUCE_LOG: 8.0
+    JUNGLE_LOG: 8.0
+    ACACIA_LOG: 8.0
+    DARK_OAK_LOG: 8.0
+    MANGROVE_LOG: 8.0
+    PALE_OAK_LOG: 8.0
+    CHERRY_LOG: 8.0
+    CRIMSON_STEM: 12.0
+    WARPED_STEM: 12.0
 
   farming:
-    WHEAT:     4.0
-    CARROTS:   2.0
-    POTATOES:  3.0
+    WHEAT:     8.0
+    CARROTS:   8.0
+    POTATOES:  8.0
+    BEETROOTS:  8.0
+    PUMPKIN:  8.0
+    MELON:  8.0
+    SUGAR_CANE:  1.0
 
   fishing:
-    fish:     3.0
-    junk:     1.0
-    treasure: 5.0
+    fish:     25.0
+    junk:     15.0
+    treasure: 45.0
 
   exploring:
     blocksPerXp: 16
@@ -31,20 +60,168 @@ xpConfig:
 # Rewards for skilling
 rewards:
   MINING:
-    1:
-      - "eco give %player% 10"
-    2:
-      - "eco give %player% 20"
-    3:
-      - "eco give %player% 30"
-    # …
+    5:
+      - "give %player% experience_bottle 5"
+    10:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% _iainternal:miner_boots"
+      - "tell %player% §aYou have received a &cProsector Boots!"
+    20:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% _iainternal:miner_bottom"
+      - "tell %player% §aYou have received a &cProsector Legs!"
+    30:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% _iainternal:miner_top"
+      - "tell %player% §aYou have received a &cProsector Jacket!"
+    40:
+      - "give %player% gold_ingot 10"
+      - "give %player% experience_bottle 10"
     50:
       - "broadcast %player% has just mastered MINING!"
-  COMBAT:
+      - "give %player% experience_bottle 25"
+      - "iagive %player% _iainternal:miner_helm1"
+      - "tell %player% §aYou have received a &cProsector Helmet!"
+      - "lp user %player% permission set supremetags.tag.miningmaster true"
+  WOODCUTTING:
+    5:
+      - "give %player% experience_bottle 5"
     10:
-      - "kit give %player% warrior_sword"
+      - "give %player% experience_bottle 10"
+      - "iagive %player% shizuart_furnitures:lumberjack_boots"
+      - "tell %player% §aYou have received a &cLumberjack Boots!"
+    20:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% shizuart_furnitures:lumberjack_leggings"
+      - "tell %player% §aYou have received a &cLumberjack Leggings!"
+    30:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% shizuart_furnitures:lumberjack_hat"
+      - "tell %player% §aYou have received a &cLumberjack hat!"
+    40:
+      - "give %player% gold_ingot 10"
+      - "give %player% experience_bottle 10"
     50:
+      - "broadcast %player% has just mastered Woodcutting!"
+      - "give %player% experience_bottle 25"
+      - "iagive %player% shizuart_furnitures:lumberjack_armor"
+      - "tell %player% §aYou have received a &cLumberjack top!"
+  COMBAT:
+    25:
+      - "give %player% gold_ingot 10"
+      - "give %player% experience_bottle 10"
+    50:
+      - "give %player% gold_ingot 25"
+      - "give %player% experience_bottle 25"
       - "broadcast %player% has just mastered COMBAT!"
+  SLAYER:
+    25:
+      - "give %player% gold_ingot 10"
+      - "give %player% experience_bottle 10"
+    50:
+      - "give %player% gold_ingot 25"
+      - "give %player% experience_bottle 25"
+      - "broadcast %player% has just mastered SLAYER!"
+  SAILING:
+    5:
+      - "give %player% experience_bottle 5"
+    10:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% lanshan_cos_pirate:pirate_bandana"
+      - "tell %player% §aYou have received a &cPirate Bandana!"
+    20:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% lanshan_cos_pirate:pirate_hook"
+      - "tell %player% §aYou have received a &cPirate Hook!"
+    30:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% lanshan_cos_pirate:pirate_hat"
+      - "tell %player% §aYou have received a &cPirate hat!"
+    40:
+      - "give %player% gold_ingot 10"
+      - "give %player% experience_bottle 10"
+    50:
+      - "give %player% gold_ingot 25"
+      - "give %player% experience_bottle 25"
+      - "iagive %player% lanshan_cos_pirate:pirate_treasure_chest"
+      - "tell %player% §aYou have received a &cTreasure Chest!"
+      - "broadcast %player% has just mastered SAILING!"
+  EXPLORATION:
+    5:
+      - "give %player% experience_bottle 5"
+    10:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% _iainternal:graceful_boots"
+      - "tell %player% §aYou have received a &cGraceful Boots!"
+    20:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% _iainternal:graceful_legs"
+      - "tell %player% §aYou have received a &cGraceful Legs!"
+    30:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% _iainternal:graceful_hood"
+      - "tell %player% §aYou have received a &Graceful Cap!"
+    40:
+      - "give %player% gold_ingot 10"
+      - "give %player% experience_bottle 10"
+    50:
+      - "give %player% gold_ingot 25"
+      - "give %player% experience_bottle 25"
+      - "iagive %player% _iainternal:graceful_top"
+      - "tell %player% §aYou have received a &cGraceful Top!"
+      - "broadcast %player% has just mastered EXPLORING!"
+  FARMING:
+    5:
+      - "give %player% experience_bottle 5"
+    10:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% elitecreatures:farmer_cosmetic_sunhat"
+      - "iagive %player% elitecreatures:farmer_cosmetic_pitchfork"
+      - "tell %player% §aYou have received a &cSun Hat and a Pitchfork!"
+    20:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% elitecreatures:farmer_cosmetic_sunhat2"
+      - "iagive %player% elitecreatures:farmer_cosmetic_pitchfork2"
+      - "tell %player% §aYou have received a &cSun Hat and a Pitchfork!"
+    30:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% elitecreatures:farmer_cosmetic_sunhat3"
+      - "iagive %player% elitecreatures:farmer_cosmetic_pitchfork3"
+      - "tell %player% §aYou have received a &cSun Hat and a Pitchfork!"
+    40:
+      - "give %player% gold_ingot 10"
+      - "give %player% experience_bottle 10"
+    50:
+      - "give %player% gold_ingot 25"
+      - "give %player% experience_bottle 25"
+      - "iagive %player% elitecreatures:farmer_cosmetic_sunhat5"
+      - "iagive %player% elitecreatures:farmer_cosmetic_pitchfork5"
+      - "tell %player% §aYou have received a &cSun Hat and a Pitchfork!"
+      - "broadcast %player% has just mastered FARMING!"
+  FISHING:
+    5:
+      - "give %player% experience_bottle 5"
+    10:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% fishing_day_set:fishing_rod"
+      - "tell %player% §aYou have received a &cFishing Rod!"
+    20:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% fishing_day_set:fishing_net"
+      - "tell %player% §aYou have received a &cFishing Net!"
+    30:
+      - "give %player% experience_bottle 10"
+      - "iagive %player% fishing_day_set:fish_barrel_backpack"
+      - "tell %player% §aYou have received a &cFish Barrel Backpack!"
+    40:
+      - "give %player% gold_ingot 10"
+      - "give %player% experience_bottle 10"
+    50:
+      - "give %player% gold_ingot 25"
+      - "give %player% experience_bottle 25"
+      - "iagive %player% fishing_day_set:fishing_backpack"
+      - "tell %player% §aYou have received a &cFish backpack!"
+      - "broadcast %player% has just mastered FISHING!"
 # xp‑table voor level‑ups
 xp-table:
   '1':   0

@@ -1,11 +1,12 @@
-// src/main/java/bloody/devmules/iaddithisSkilling/SkillEvents.java
 package bloody.devmules.iaddithisSkilling;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.Ageable;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -17,6 +18,9 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+
+// ItemsAdder static API
+import dev.lone.itemsadder.api.ItemsAdder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +37,12 @@ public class SkillEvents implements Listener {
         if (e.isCancelled()) return;
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
+
+        // ** Silk Touch check **
+        if (p.getInventory().getItemInMainHand() != null &&
+                p.getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
+            return; // No XP for Silk Touch
+        }
 
         FileConfiguration cfg = IaddithisSkilling.getInstance().getConfig();
         ConfigurationSection xpCfg = cfg.getConfigurationSection("xpConfig");
@@ -56,12 +66,29 @@ public class SkillEvents implements Listener {
             sendXp(p, xp, "WOODCUTTING");
         }
 
-        // Farming
+        // Farming (vanilla crops, ONLY when fully grown)
         ConfigurationSection farmSec = xpCfg.getConfigurationSection("farming");
         if (farmSec != null && farmSec.isDouble(type)) {
-            double xp = farmSec.getDouble(type);
-            SkillManager.addXP(p, "FARMING", xp);
-            sendXp(p, xp, "FARMING");
+            boolean mature = true;
+            Block b = e.getBlock();
+            if (b.getBlockData() instanceof Ageable ageData) {
+                mature = (ageData.getAge() == ageData.getMaximumAge());
+            }
+            if (mature) {
+                double xp = farmSec.getDouble(type);
+                SkillManager.addXP(p, "FARMING", xp);
+                sendXp(p, xp, "FARMING");
+            }
+        }
+
+        // ItemsAdder custom crops/blocks (bijvoorbeeld alleen cabbage_stage_4 geeft XP)
+        if (ItemsAdder.isCustomBlock(e.getBlock())) {
+            String blockName = ItemsAdder.getCustomItemName(ItemsAdder.getCustomBlock(e.getBlock()));
+            if (blockName != null && farmSec != null && farmSec.isDouble(blockName.toUpperCase())) {
+                double xp = farmSec.getDouble(blockName.toUpperCase());
+                SkillManager.addXP(p, "FARMING", xp);
+                sendXp(p, xp, "FARMING");
+            }
         }
     }
 

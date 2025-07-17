@@ -4,6 +4,8 @@ version: "0.01-SNAPSHOT"
 api-version: "1.21"
 depend:
   - PlaceholderAPI
+softdepend:
+  - ItemsAdder
 commands:
   skills:
     description: Show your skill levels.

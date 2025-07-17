@@ -13,12 +13,12 @@ public class ToggleNotificationCommand implements CommandExecutor {
         if (!(sender instanceof Player)) return true;
         Player p = (Player) sender;
         FileConfiguration data = IaddithisSkilling.getInstance().getData();
-        String path = p.getUniqueId() + ".settings.notifications";
+        String path = p.getUniqueId() + ".settings.xpNotifications";
         boolean current = data.getBoolean(path, true);
         data.set(path, !current);
         p.sendMessage("Notifications are now " + ((!current) ? "§aENABLED" : "§cDISABLED"));
-        // ← save here too
         IaddithisSkilling.getInstance().saveData();
         return true;
     }
 }
+
