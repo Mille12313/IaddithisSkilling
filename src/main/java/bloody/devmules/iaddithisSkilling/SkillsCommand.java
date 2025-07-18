@@ -17,10 +17,10 @@ public class SkillsCommand implements CommandExecutor {
             "FISHING", "SLAYER"
     };
 
-    // PROGRESSBAR utility
+    // Progress bar utility
     private String progressBar(double current, double max, int bars) {
         double percent = Math.max(0, Math.min(1, current / max));
-        int filled = (int)Math.round(bars * percent);
+        int filled = (int) Math.round(bars * percent);
         String bar = "§a" + "█".repeat(filled) + "§7" + "░".repeat(bars - filled);
         return "§8[" + bar + "§8]";
     }

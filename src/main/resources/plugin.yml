@@ -21,6 +21,9 @@ commands:
     description: Reset a skill for all players.
     usage: /resetskill <skill>
     permission: iaddithisskilling.resetskill
+  skillsmenu:
+    description: Open your Skills GUI menu.
+    aliases: [skillsgui]
 permissions:
   iaddithisskilling.reload:
     description: Allows reloading the plugin.

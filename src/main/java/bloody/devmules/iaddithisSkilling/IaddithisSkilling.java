@@ -19,7 +19,7 @@ public class IaddithisSkilling extends JavaPlugin {
         // load default config.yml
         saveDefaultConfig();
 
-        // initialize data.yml without calling saveResource()
+        // initialize data.yml
         dataFile = new File(getDataFolder(), "data.yml");
         if (!dataFile.exists()) {
             dataFile.getParentFile().mkdirs();
@@ -32,13 +32,17 @@ public class IaddithisSkilling extends JavaPlugin {
         }
         dataConfig = YamlConfiguration.loadConfiguration(dataFile);
 
-        // register events & commands
+        // Register events (listeners)
         getServer().getPluginManager().registerEvents(new SkillEvents(), this);
+        getServer().getPluginManager().registerEvents(new SkillsGuiCommand(), this);
+
+        // Register commands
         getCommand("skills").setExecutor(new SkillsCommand());
         getCommand("highscore").setExecutor(new HighscoreCommand());
         getCommand("togglenotifications").setExecutor(new ToggleNotificationCommand());
         getCommand("iaddithisskilling").setExecutor(new ReloadCommand());
-        getCommand("resetskill").setExecutor(new SkillResetCommand()); // <--- DIT WAS JE VERGETEN
+        getCommand("resetskill").setExecutor(new SkillResetCommand());
+        getCommand("skillsmenu").setExecutor(new SkillsGuiCommand()); // GUI COMMAND!
 
         getLogger().info("IaddithisSkilling enabled.");
     }

@@ -2,15 +2,12 @@ package bloody.devmules.iaddithisSkilling;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.Ageable;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.Ageable;
-import org.bukkit.entity.Boat;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -19,12 +16,11 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
-// ItemsAdder static API
+// ItemsAdder
+import dev.lone.itemsadder.api.Events.CustomBlockBreakEvent;
 import dev.lone.itemsadder.api.ItemsAdder;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class SkillEvents implements Listener {
     private final Map<UUID, Location> lastStep = new HashMap<>();
@@ -32,13 +28,16 @@ public class SkillEvents implements Listener {
     private final Map<UUID, Location> lastBoat = new HashMap<>();
     private final Map<UUID, Integer> boatCount = new HashMap<>();
 
+    // Exclude XP for these entity types (armor stands, wolves, horses)
+    private static final Set<EntityType> EXCLUDED_ENTITIES = EnumSet.of(EntityType.WOLF, EntityType.HORSE, EntityType.ARMOR_STAND);
+
     @EventHandler
     public void onBlockBreak(BlockBreakEvent e) {
         if (e.isCancelled()) return;
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
 
-        // ** Silk Touch check **
+        // Silk Touch check
         if (p.getInventory().getItemInMainHand() != null &&
                 p.getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
             return; // No XP for Silk Touch
@@ -66,7 +65,7 @@ public class SkillEvents implements Listener {
             sendXp(p, xp, "WOODCUTTING");
         }
 
-        // Farming (vanilla crops, ONLY when fully grown)
+        // Farming (only fully grown)
         ConfigurationSection farmSec = xpCfg.getConfigurationSection("farming");
         if (farmSec != null && farmSec.isDouble(type)) {
             boolean mature = true;
@@ -80,26 +79,63 @@ public class SkillEvents implements Listener {
                 sendXp(p, xp, "FARMING");
             }
         }
+    }
 
-        // ItemsAdder custom crops/blocks (bijvoorbeeld alleen cabbage_stage_4 geeft XP)
-        if (ItemsAdder.isCustomBlock(e.getBlock())) {
-            String blockName = ItemsAdder.getCustomItemName(ItemsAdder.getCustomBlock(e.getBlock()));
-            if (blockName != null && farmSec != null && farmSec.isDouble(blockName.toUpperCase())) {
-                double xp = farmSec.getDouble(blockName.toUpperCase());
+    // ItemsAdder Custom Crops (final stage only, config-based)
+    @EventHandler
+    public void onCustomBlockBreak(CustomBlockBreakEvent event) {
+        Player p = event.getPlayer();
+        if (p == null || p.getGameMode() != GameMode.SURVIVAL) return;
+
+        FileConfiguration cfg = IaddithisSkilling.getInstance().getConfig();
+        ConfigurationSection xpCfg = cfg.getConfigurationSection("xpConfig");
+        if (xpCfg == null) return;
+        ConfigurationSection farmSec = xpCfg.getConfigurationSection("farming");
+        if (farmSec == null) return;
+
+        String namespacedId = event.getNamespacedID();
+        if (!namespacedId.contains(":")) return;
+        String customBlockID = namespacedId.split(":")[1];
+        String[] nameArray = customBlockID.split("_");
+
+        // Expect format: <crop>_stage_<nummer>
+        if (nameArray.length < 3) return;
+        if (!nameArray[1].equalsIgnoreCase("stage")) return;
+
+        int stageNum;
+        try {
+            stageNum = Integer.parseInt(nameArray[2]);
+        } catch (NumberFormatException ex) {
+            return;
+        }
+        String configKey = customBlockID.toUpperCase();
+
+        // Only give XP for configured final stage
+        if (farmSec.isDouble(configKey)) {
+            if (
+                    (nameArray[0].equalsIgnoreCase("grape") && stageNum == 6)
+                            || (!nameArray[0].equalsIgnoreCase("grape") && stageNum == 4)
+            ) {
+                double xp = farmSec.getDouble(configKey);
                 SkillManager.addXP(p, "FARMING", xp);
                 sendXp(p, xp, "FARMING");
             }
         }
     }
 
+    // Combat: Only XP for actual damage, no PvP, no excluded mobs, not in protected claims
     @EventHandler
     public void onCombat(EntityDamageByEntityEvent e) {
         if (e.isCancelled() || !(e.getDamager() instanceof Player)) return;
         Player p = (Player) e.getDamager();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
 
-        // Only give XP if actual damage is dealt
+        // Only give XP if actual damage is dealt (and not cancelled by claims or region)
         if (e.getFinalDamage() <= 0) return;
+        if (e.getEntity() instanceof Player) return; // No PvP XP
+
+        // Exclude armor stands, wolves, horses
+        if (!(e.getEntity() instanceof LivingEntity target) || EXCLUDED_ENTITIES.contains(target.getType())) return;
 
         double xp = Math.round(e.getFinalDamage() * 2.0);
         if (xp > 0) {
@@ -108,11 +144,13 @@ public class SkillEvents implements Listener {
         }
     }
 
+    // Fishing
     @EventHandler
     public void onFish(PlayerFishEvent e) {
         if (e.getState() != PlayerFishEvent.State.CAUGHT_FISH) return;
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
+        if (e.getCaught() == null) return;
 
         EntityType caughtType = e.getCaught().getType();
         String cat;
@@ -139,6 +177,7 @@ public class SkillEvents implements Listener {
         }
     }
 
+    // Exploration/Sailing (blocks moved; only on foot for exploration)
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
         if (e.isCancelled()) return;
@@ -151,7 +190,7 @@ public class SkillEvents implements Listener {
         FileConfiguration cfg = IaddithisSkilling.getInstance().getConfig();
         ConfigurationSection xpCfg = cfg.getConfigurationSection("xpConfig");
 
-        // Sailing (in boat, still allowed)
+        // Sailing (in boat)
         if (p.isInsideVehicle() && p.getVehicle() instanceof Boat) {
             Location loc = to.getBlock().getLocation();
             Location last = lastBoat.get(u);
@@ -175,7 +214,7 @@ public class SkillEvents implements Listener {
             return;
         }
 
-        // Exploration: ONLY on foot, NOT in any vehicle (no horses, no boats, no minecarts etc)
+        // Exploration: Only on foot, not in any vehicle
         if (!p.isInsideVehicle()) {
             Location loc = to.getBlock().getLocation();
             Location last = lastStep.get(u);
@@ -199,22 +238,26 @@ public class SkillEvents implements Listener {
         }
     }
 
+    // Slayer: Only when living entity dies (excluding players, armor stands, wolves, horses)
     @EventHandler
     public void onMobDeath(EntityDeathEvent e) {
         if (e.getEntity() instanceof Player) return;
+        if (!(e.getEntity() instanceof LivingEntity mob)) return;
+        if (EXCLUDED_ENTITIES.contains(mob.getType())) return;
+
         Player killer = e.getEntity().getKiller();
         if (killer == null || killer.getGameMode() != GameMode.SURVIVAL) return;
 
-        double xp = Math.round(((LivingEntity) e.getEntity()).getMaxHealth() * 2.0);
+        double xp = Math.round(mob.getMaxHealth() * 2.0);
         SkillManager.addXP(killer, "SLAYER", xp);
         sendXp(killer, xp, "SLAYER");
     }
 
+    // XP ActionBar (only if enabled)
     private void sendXp(Player p, double xp, String skill) {
         var data = IaddithisSkilling.getInstance().getData();
         boolean notif = data.getBoolean(p.getUniqueId() + ".settings.xpNotifications", true);
         if (notif) {
-            // ActionBar i.p.v. chat
             p.spigot().sendMessage(
                     net.md_5.bungee.api.ChatMessageType.ACTION_BAR,
                     new net.md_5.bungee.api.chat.TextComponent("✨ +" + (int) xp + " " + skill + " XP")

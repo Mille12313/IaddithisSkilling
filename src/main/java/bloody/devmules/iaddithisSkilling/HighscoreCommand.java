@@ -10,7 +10,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import java.util.*;
 
 public class HighscoreCommand implements CommandExecutor {
-    private static final String[] ALL_SKILLS = {
+    public static final String[] ALL_SKILLS = {
             "MINING", "WOODCUTTING", "FARMING",
             "COMBAT", "EXPLORATION", "SAILING",
             "FISHING", "SLAYER"
@@ -34,28 +34,46 @@ public class HighscoreCommand implements CommandExecutor {
             }
         }
 
-        // Build scores
-        Map<String, Integer> scores = new HashMap<>();
-        for (String key : data.getKeys(false)) {
-            int sum = 0;
-            if (skill == null) {
-                // Total level over all skills
-                for (String s : ALL_SKILLS)
-                    sum += data.getInt(key + "." + s + ".level", 1);
-            } else {
-                sum = data.getInt(key + "." + skill + ".level", 1);
-            }
-            OfflinePlayer op = Bukkit.getOfflinePlayer(UUID.fromString(key));
-            scores.put(op.getName() != null ? op.getName() : key, sum);
+        Set<String> allUuids = data.getKeys(false);
+        List<String> cemented = data.getStringList("cemented");
+        List<String> cementedOrdered = new ArrayList<>();
+        for (String uuid : cemented) {
+            if (allUuids.contains(uuid)) cementedOrdered.add(uuid);
         }
 
-        // Sort
-        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(scores.entrySet());
-        sorted.sort(Map.Entry.<String, Integer>comparingByValue().reversed());
+        // 1. Eerst cemented spelers, dan niet-cemented
+        List<Map.Entry<String, Integer>> cementedList = new ArrayList<>();
+        List<Map.Entry<String, Integer>> normalList = new ArrayList<>();
+        for (String uuid : allUuids) {
+            int score;
+            if (skill == null) {
+                score = SkillManager.getPlayerTotalLevel(uuid);
+            } else {
+                score = data.getInt(uuid + "." + skill + ".level", 1);
+            }
+            if (cemented.contains(uuid)) {
+                cementedList.add(Map.entry(uuid, score));
+            } else {
+                normalList.add(Map.entry(uuid, score));
+            }
+        }
+
+        // Sorteer cemented exact in cemented volgorde (eerste maxer blijft eerste!)
+        List<Map.Entry<String, Integer>> cementedSorted = new ArrayList<>();
+        for (String uuid : cementedOrdered) {
+            cementedList.stream().filter(e -> e.getKey().equals(uuid)).findFirst().ifPresent(cementedSorted::add);
+        }
+        // Normale spelers: sorteer op total lvl (xp is niet relevant meer!)
+        normalList.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        // Samenvoegen
+        List<Map.Entry<String, Integer>> sorted = new ArrayList<>();
+        sorted.addAll(cementedSorted);
+        sorted.addAll(normalList);
 
         int perPage = 10;
         int maxPages = (int) Math.ceil(sorted.size() / (double) perPage);
-        page = Math.min(page, maxPages);
+        page = Math.min(page, maxPages == 0 ? 1 : maxPages);
 
         sender.sendMessage("§6⬆ Highscores " +
                 (skill != null ? "for §e" + skill + "§6 " : "") +
@@ -66,7 +84,11 @@ public class HighscoreCommand implements CommandExecutor {
 
         for (int i = start; i < end; i++) {
             Map.Entry<String, Integer> entry = sorted.get(i);
-            sender.sendMessage("§7#" + (i + 1) + " §e" + entry.getKey() + ": §a" + entry.getValue());
+            String uuid = entry.getKey();
+            OfflinePlayer op = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
+            String name = (op.getName() != null ? op.getName() : uuid);
+
+            sender.sendMessage("§7#" + (i + 1) + " §e" + name + ": §a" + entry.getValue());
         }
         if (maxPages > 1) {
             sender.sendMessage("§8Type /highscore" +
