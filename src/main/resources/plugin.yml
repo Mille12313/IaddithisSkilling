@@ -2,11 +2,14 @@ name: IaddithisSkilling
 main: bloody.devmules.iaddithisSkilling.IaddithisSkilling
 version: "0.01-SNAPSHOT"
 api-version: "1.21"
+
 depend:
   - PlaceholderAPI
 softdepend:
   - ItemsAdder
   - Towny
+  - WorldGuard
+
 commands:
   skills:
     description: Show your skill levels.
@@ -25,6 +28,7 @@ commands:
   skillsmenu:
     description: Open your Skills GUI menu.
     aliases: [skillsgui]
+
 permissions:
   iaddithisskilling.reload:
     description: Allows reloading the plugin.

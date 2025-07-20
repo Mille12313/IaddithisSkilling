@@ -31,9 +31,10 @@ public class SkillEvents implements Listener {
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent e) {
-        if (e.isCancelled()) return; // only grant XP if NOT cancelled!
+        if (e.isCancelled()) return;
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
+        if (!RegionAccessUtil.canBuild(p, e.getBlock().getLocation())) return;
 
         // Silk Touch check
         if (p.getInventory().getItemInMainHand() != null &&
@@ -82,9 +83,10 @@ public class SkillEvents implements Listener {
     // ItemsAdder Custom Crops (final stage only, config-based)
     @EventHandler
     public void onCustomBlockBreak(CustomBlockBreakEvent event) {
-        if (event.isCancelled()) return; // ItemsAdder custom events ARE cancellable!
+        if (event.isCancelled()) return;
         Player p = event.getPlayer();
         if (p == null || p.getGameMode() != GameMode.SURVIVAL) return;
+        if (!RegionAccessUtil.canBuild(p, event.getBlock().getLocation())) return;
 
         FileConfiguration cfg = IaddithisSkilling.getInstance().getConfig();
         ConfigurationSection xpCfg = cfg.getConfigurationSection("xpConfig");
@@ -132,6 +134,7 @@ public class SkillEvents implements Listener {
         if (e.getFinalDamage() <= 0) return;
         if (e.getEntity() instanceof Player) return; // No PvP XP
         if (!(e.getEntity() instanceof LivingEntity target) || EXCLUDED_ENTITIES.contains(target.getType())) return;
+        if (!RegionAccessUtil.canBuild(p, e.getEntity().getLocation())) return;
 
         double xp = Math.round(e.getFinalDamage() * 2.0);
         if (xp > 0) {
@@ -148,6 +151,7 @@ public class SkillEvents implements Listener {
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
         if (e.getCaught() == null) return;
+        if (!RegionAccessUtil.canBuild(p, p.getLocation())) return;
 
         EntityType caughtType = e.getCaught().getType();
         String cat;
@@ -183,6 +187,7 @@ public class SkillEvents implements Listener {
         UUID u = p.getUniqueId();
         Location to = e.getTo();
         if (to == null) return;
+        if (!RegionAccessUtil.canBuild(p, to)) return;
 
         FileConfiguration cfg = IaddithisSkilling.getInstance().getConfig();
         ConfigurationSection xpCfg = cfg.getConfigurationSection("xpConfig");
@@ -244,6 +249,7 @@ public class SkillEvents implements Listener {
 
         Player killer = e.getEntity().getKiller();
         if (killer == null || killer.getGameMode() != GameMode.SURVIVAL) return;
+        if (!RegionAccessUtil.canBuild(killer, mob.getLocation())) return;
 
         double xp = Math.round(mob.getMaxHealth() * 2.0);
         SkillManager.addXP(killer, "SLAYER", xp);
