@@ -6,6 +6,7 @@ depend:
   - PlaceholderAPI
 softdepend:
   - ItemsAdder
+  - Towny
 commands:
   skills:
     description: Show your skill levels.

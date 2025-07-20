@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
 import java.util.TreeMap;
 
 public class SkillsCommand implements CommandExecutor {
-    private static final String[] ALL_SKILLS = {
+    public static final String[] ALL_SKILLS = {
             "MINING", "WOODCUTTING", "FARMING",
             "COMBAT", "EXPLORATION", "SAILING",
             "FISHING", "SLAYER"

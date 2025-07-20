@@ -12,6 +12,8 @@ public class IaddithisSkilling extends JavaPlugin {
     private FileConfiguration dataConfig;
     private static IaddithisSkilling instance;
 
+    private HighscoreWebServer webServer; // <-- Toegevoegd
+
     @Override
     public void onEnable() {
         instance = this;
@@ -42,7 +44,21 @@ public class IaddithisSkilling extends JavaPlugin {
         getCommand("togglenotifications").setExecutor(new ToggleNotificationCommand());
         getCommand("iaddithisskilling").setExecutor(new ReloadCommand());
         getCommand("resetskill").setExecutor(new SkillResetCommand());
-        getCommand("skillsmenu").setExecutor(new SkillsGuiCommand()); // GUI COMMAND!
+        getCommand("skillsmenu").setExecutor(new SkillsGuiCommand());
+
+        // ---- Start Highscore webserver via config ----
+        FileConfiguration cfg = getConfig();
+        if (cfg.getBoolean("webserver.enabled", false)) {
+            String address = cfg.getString("webserver.bind-address", "0.0.0.0");
+            int port = cfg.getInt("webserver.port", 8888);
+            try {
+                webServer = new HighscoreWebServer(address, port); // <<-- zie aangepaste constructor!
+                webServer.start();
+                getLogger().info("Highscore webserver started at http://" + address + ":" + port + "/");
+            } catch (IOException e) {
+                getLogger().severe("Failed to start webserver: " + e.getMessage());
+            }
+        }
 
         getLogger().info("IaddithisSkilling enabled.");
     }
@@ -50,6 +66,13 @@ public class IaddithisSkilling extends JavaPlugin {
     @Override
     public void onDisable() {
         saveData();
+
+        // ---- Stop de webserver netjes ----
+        if (webServer != null) {
+            webServer.stop();
+            getLogger().info("Highscore webserver stopped.");
+        }
+
         getLogger().info("IaddithisSkilling disabled.");
     }
 

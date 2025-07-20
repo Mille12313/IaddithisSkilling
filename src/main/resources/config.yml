@@ -1,3 +1,8 @@
+webserver:
+  enabled: true
+  bind-address: "0.0.0.0"
+  port: 8888
+
 xpConfig:
   mining:
     TUFF:        3.5
@@ -43,7 +48,7 @@ xpConfig:
     BEETROOTS:  8.0
     PUMPKIN:  8.0
     MELON:  8.0
-    SUGAR_CANE:  1.0
+    SUGAR_CANE: 1.0
 
   fishing:
     fish:     25.0
@@ -106,6 +111,7 @@ rewards:
       - "give %player% experience_bottle 25"
       - "iagive %player% shizuart_furnitures:lumberjack_armor"
       - "tell %player% §aYou have received a &cLumberjack top!"
+      - "lp user %player% permission set supremetags.tag.woodcuttingmaster true"
   COMBAT:
     25:
       - "give %player% gold_ingot 10"
@@ -180,13 +186,13 @@ rewards:
       - "tell %player% §aYou have received a &cSun Hat and a Pitchfork!"
     20:
       - "give %player% experience_bottle 10"
-      - "iagive %player% elitecreatures:farmer_cosmetic_sunhat2"
-      - "iagive %player% elitecreatures:farmer_cosmetic_pitchfork2"
+      - "iagive %player% elitecreatures:farmer_cosmetic_sunhat_2"
+      - "iagive %player% elitecreatures:farmer_cosmetic_pitchfork_2"
       - "tell %player% §aYou have received a &cSun Hat and a Pitchfork!"
     30:
       - "give %player% experience_bottle 10"
-      - "iagive %player% elitecreatures:farmer_cosmetic_sunhat3"
-      - "iagive %player% elitecreatures:farmer_cosmetic_pitchfork3"
+      - "iagive %player% elitecreatures:farmer_cosmetic_sunhat_3"
+      - "iagive %player% elitecreatures:farmer_cosmetic_pitchfork_3"
       - "tell %player% §aYou have received a &cSun Hat and a Pitchfork!"
     40:
       - "give %player% gold_ingot 10"
@@ -194,10 +200,11 @@ rewards:
     50:
       - "give %player% gold_ingot 25"
       - "give %player% experience_bottle 25"
-      - "iagive %player% elitecreatures:farmer_cosmetic_sunhat5"
-      - "iagive %player% elitecreatures:farmer_cosmetic_pitchfork5"
+      - "iagive %player% elitecreatures:farmer_cosmetic_sunhat_5"
+      - "iagive %player% elitecreatures:farmer_cosmetic_pitchfork_5"
       - "tell %player% §aYou have received a &cSun Hat and a Pitchfork!"
       - "broadcast %player% has just mastered FARMING!"
+      - "lp user %player% permission set supremetags.tag.farmingmaster true"
   FISHING:
     5:
       - "give %player% experience_bottle 5"
@@ -222,6 +229,7 @@ rewards:
       - "iagive %player% fishing_day_set:fishing_backpack"
       - "tell %player% §aYou have received a &cFish backpack!"
       - "broadcast %player% has just mastered FISHING!"
+      - "lp user %player% permission set supremetags.tag.fishingmaster true"
 # xp‑table voor level‑ups
 xp-table:
   '1':   0

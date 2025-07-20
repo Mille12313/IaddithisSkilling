@@ -18,7 +18,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
 
 // ItemsAdder
 import dev.lone.itemsadder.api.Events.CustomBlockBreakEvent;
-import dev.lone.itemsadder.api.ItemsAdder;
 
 import java.util.*;
 
@@ -28,12 +27,11 @@ public class SkillEvents implements Listener {
     private final Map<UUID, Location> lastBoat = new HashMap<>();
     private final Map<UUID, Integer> boatCount = new HashMap<>();
 
-    // Exclude XP for these entity types (armor stands, wolves, horses)
     private static final Set<EntityType> EXCLUDED_ENTITIES = EnumSet.of(EntityType.WOLF, EntityType.HORSE, EntityType.ARMOR_STAND);
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent e) {
-        if (e.isCancelled()) return;
+        if (e.isCancelled()) return; // only grant XP if NOT cancelled!
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
 
@@ -84,6 +82,7 @@ public class SkillEvents implements Listener {
     // ItemsAdder Custom Crops (final stage only, config-based)
     @EventHandler
     public void onCustomBlockBreak(CustomBlockBreakEvent event) {
+        if (event.isCancelled()) return; // ItemsAdder custom events ARE cancellable!
         Player p = event.getPlayer();
         if (p == null || p.getGameMode() != GameMode.SURVIVAL) return;
 
@@ -123,18 +122,15 @@ public class SkillEvents implements Listener {
         }
     }
 
-    // Combat: Only XP for actual damage, no PvP, no excluded mobs, not in protected claims
+    // Combat: Only XP for actual damage, no PvP, no excluded mobs
     @EventHandler
     public void onCombat(EntityDamageByEntityEvent e) {
-        if (e.isCancelled() || !(e.getDamager() instanceof Player)) return;
+        if (e.isCancelled()) return;
+        if (!(e.getDamager() instanceof Player)) return;
         Player p = (Player) e.getDamager();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
-
-        // Only give XP if actual damage is dealt (and not cancelled by claims or region)
         if (e.getFinalDamage() <= 0) return;
         if (e.getEntity() instanceof Player) return; // No PvP XP
-
-        // Exclude armor stands, wolves, horses
         if (!(e.getEntity() instanceof LivingEntity target) || EXCLUDED_ENTITIES.contains(target.getType())) return;
 
         double xp = Math.round(e.getFinalDamage() * 2.0);
@@ -147,6 +143,7 @@ public class SkillEvents implements Listener {
     // Fishing
     @EventHandler
     public void onFish(PlayerFishEvent e) {
+        if (e.isCancelled()) return;
         if (e.getState() != PlayerFishEvent.State.CAUGHT_FISH) return;
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;

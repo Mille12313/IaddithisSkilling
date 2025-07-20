@@ -7,7 +7,7 @@
 
     <groupId>bloody.devmules</groupId>
     <artifactId>SkillPlugin</artifactId>
-    <version>1.01-IaddithisSkilling</version>
+    <version>1.03</version>
     <packaging>jar</packaging>
 
     <name>SkillPlugin</name>
@@ -19,7 +19,6 @@
 
     <build>
         <plugins>
-            <!-- Java compiler -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -29,7 +28,6 @@
                     <target>${java.version}</target>
                 </configuration>
             </plugin>
-            <!-- Fat-jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -71,6 +69,12 @@
             <id>matteodev</id>
             <url>https://maven.devs.beer/</url>
         </repository>
+        <!-- Je mag deze laten staan voor andere projecten,
+             maar je gebruikt géén WorldGuard/Towny code! -->
+        <repository>
+            <id>enginehub</id>
+            <url>https://maven.enginehub.org/repo/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -95,5 +99,6 @@
             <version>4.0.10</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Geen Towny, geen WorldGuard! -->
     </dependencies>
 </project>
