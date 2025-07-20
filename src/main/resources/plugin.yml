@@ -5,9 +5,9 @@ api-version: "1.21"
 
 depend:
   - PlaceholderAPI
+  - Towny
 softdepend:
   - ItemsAdder
-  - Towny
   - WorldGuard
 
 commands:

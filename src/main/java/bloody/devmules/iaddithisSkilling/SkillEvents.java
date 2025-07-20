@@ -34,6 +34,7 @@ public class SkillEvents implements Listener {
         if (e.isCancelled()) return;
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
+        // Blokkeert XP als men niet mag breken!
         if (!RegionAccessUtil.canBuild(p, e.getBlock().getLocation())) return;
 
         // Silk Touch check

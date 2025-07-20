@@ -1,44 +1,24 @@
-package bloody.devmules.iaddithisSkilling;
-
-import org.bukkit.Bukkit;
+import com.palmergames.bukkit.towny.TownyAPI;
+import com.palmergames.bukkit.towny.object.TownBlock;
 import org.bukkit.Location;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 public class RegionAccessUtil {
 
-    // Let op: GEEN imports van Towny of WorldGuard hierboven!
-
     public static boolean canBuild(Player player, Location loc) {
-        // ---- WORLDGUARD CHECK ----
-        if (Bukkit.getPluginManager().isPluginEnabled("WorldGuard")) {
+        TownBlock block = TownyAPI.getInstance().getTownBlock(loc);
+        if (block != null) {
+            // Speler is geen mayor, resident, vriend of ally -> geen build recht!
             try {
-                // Let op: .canBuild(Player, Block) werkt met de Bukkit-bridge
-                Block block = loc.getBlock();
-                org.bukkit.plugin.Plugin plugin = Bukkit.getPluginManager().getPlugin("WorldGuard");
-                if (plugin != null) {
-                    // Via Java reflection (no hard dependency)
-                    boolean allowed = (boolean) plugin.getClass()
-                            .getMethod("canBuild", Player.class, Block.class)
-                            .invoke(plugin, player, block);
-                    if (!allowed) return false;
+                // Dit is simplified! Je kan rechten verder uitsplitsen via Towny methods:
+                if (!block.getTown().hasResident(TownyAPI.getInstance().getDataSource().getResident(player.getName()))) {
+                    return false;
                 }
-            } catch (Throwable ignore) {}
+            } catch (Exception ex) {
+                return false;
+            }
         }
-        // ---- TOWNY CHECK ----
-        if (Bukkit.getPluginManager().isPluginEnabled("Towny")) {
-            try {
-                org.bukkit.plugin.Plugin plugin = Bukkit.getPluginManager().getPlugin("Towny");
-                if (plugin != null) {
-                    // Gebruik alleen hasTownyAdmin als fallback (meestal is Towny land altijd protected als je geen resident bent)
-                    // Simpelste check: mag je blokken breken op deze plek volgens Bukkit?
-                    if (!player.hasPermission("towny.townyadmin") && !loc.getBlock().breakNaturally()) {
-                        return false;
-                    }
-                }
-            } catch (Throwable ignore) {}
-        }
-        // Als geen claim-plugins, altijd true
+        // Geen claim? Gewoon true
         return true;
     }
 }
