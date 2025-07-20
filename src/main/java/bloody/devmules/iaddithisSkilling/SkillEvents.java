@@ -1,5 +1,8 @@
 package bloody.devmules.iaddithisSkilling;
 
+import com.palmergames.bukkit.towny.TownyAPI;
+import com.palmergames.bukkit.towny.event.executors.TownyActionEventExecutor;
+import dev.lone.itemsadder.api.Events.CustomBlockBreakEvent;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -7,7 +10,11 @@ import org.bukkit.block.data.Ageable;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.*;
+import org.bukkit.entity.Boat;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -15,9 +22,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-
-// ItemsAdder
-import dev.lone.itemsadder.api.Events.CustomBlockBreakEvent;
 
 import java.util.*;
 
@@ -31,11 +35,9 @@ public class SkillEvents implements Listener {
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent e) {
-        if (e.isCancelled()) return;
+        if (isBlockeEventdOrCancelledByTowny(e, e.getPlayer(), e.getBlock())) return;
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
-        // Blokkeert XP als men niet mag breken!
-        if (!RegionAccessUtil.canBuild(p, e.getBlock().getLocation())) return;
 
         // Silk Touch check
         if (p.getInventory().getItemInMainHand() != null &&
@@ -65,7 +67,7 @@ public class SkillEvents implements Listener {
             sendXp(p, xp, "WOODCUTTING");
         }
 
-        // Farming (only fully grown)
+        // Farming (alleen volgroeid)
         ConfigurationSection farmSec = xpCfg.getConfigurationSection("farming");
         if (farmSec != null && farmSec.isDouble(type)) {
             boolean mature = true;
@@ -84,10 +86,9 @@ public class SkillEvents implements Listener {
     // ItemsAdder Custom Crops (final stage only, config-based)
     @EventHandler
     public void onCustomBlockBreak(CustomBlockBreakEvent event) {
-        if (event.isCancelled()) return;
+        isBlockeEventdOrCancelledByTowny(event, event.getPlayer(), event.getBlock());
         Player p = event.getPlayer();
-        if (p == null || p.getGameMode() != GameMode.SURVIVAL) return;
-        if (!RegionAccessUtil.canBuild(p, event.getBlock().getLocation())) return;
+        if (p.getGameMode() != GameMode.SURVIVAL) return;
 
         FileConfiguration cfg = IaddithisSkilling.getInstance().getConfig();
         ConfigurationSection xpCfg = cfg.getConfigurationSection("xpConfig");
@@ -129,13 +130,11 @@ public class SkillEvents implements Listener {
     @EventHandler
     public void onCombat(EntityDamageByEntityEvent e) {
         if (e.isCancelled()) return;
-        if (!(e.getDamager() instanceof Player)) return;
-        Player p = (Player) e.getDamager();
+        if (!(e.getDamager() instanceof Player p)) return;
         if (p.getGameMode() != GameMode.SURVIVAL) return;
         if (e.getFinalDamage() <= 0) return;
         if (e.getEntity() instanceof Player) return; // No PvP XP
         if (!(e.getEntity() instanceof LivingEntity target) || EXCLUDED_ENTITIES.contains(target.getType())) return;
-        if (!RegionAccessUtil.canBuild(p, e.getEntity().getLocation())) return;
 
         double xp = Math.round(e.getFinalDamage() * 2.0);
         if (xp > 0) {
@@ -152,7 +151,6 @@ public class SkillEvents implements Listener {
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
         if (e.getCaught() == null) return;
-        if (!RegionAccessUtil.canBuild(p, p.getLocation())) return;
 
         EntityType caughtType = e.getCaught().getType();
         String cat;
@@ -188,7 +186,6 @@ public class SkillEvents implements Listener {
         UUID u = p.getUniqueId();
         Location to = e.getTo();
         if (to == null) return;
-        if (!RegionAccessUtil.canBuild(p, to)) return;
 
         FileConfiguration cfg = IaddithisSkilling.getInstance().getConfig();
         ConfigurationSection xpCfg = cfg.getConfigurationSection("xpConfig");
@@ -250,7 +247,6 @@ public class SkillEvents implements Listener {
 
         Player killer = e.getEntity().getKiller();
         if (killer == null || killer.getGameMode() != GameMode.SURVIVAL) return;
-        if (!RegionAccessUtil.canBuild(killer, mob.getLocation())) return;
 
         double xp = Math.round(mob.getMaxHealth() * 2.0);
         SkillManager.addXP(killer, "SLAYER", xp);
@@ -267,5 +263,11 @@ public class SkillEvents implements Listener {
                     new net.md_5.bungee.api.chat.TextComponent("✨ +" + (int) xp + " " + skill + " XP")
             );
         }
+    }
+
+
+    private static boolean isBlockeEventdOrCancelledByTowny(Cancellable e, Player player, Block block) {
+        return e.isCancelled() || 
+                (TownyAPI.getInstance().isTownyWorld(block.getWorld()) && !TownyActionEventExecutor.canDestroy(player, block));
     }
 }
