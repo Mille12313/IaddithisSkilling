@@ -69,8 +69,6 @@
             <id>matteodev</id>
             <url>https://maven.devs.beer/</url>
         </repository>
-        <!-- Je mag deze laten staan voor andere projecten,
-             maar je gebruikt géén WorldGuard/Towny code! -->
         <repository>
             <id>enginehub</id>
             <url>https://maven.enginehub.org/repo/</url>
