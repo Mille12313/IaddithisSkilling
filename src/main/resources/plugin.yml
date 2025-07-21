@@ -28,6 +28,9 @@ commands:
   skillsmenu:
     description: Open your Skills GUI menu.
     aliases: [skillsgui]
+  untangle:
+    description: Untangle your rod.
+    aliases: [untangle]
 
 permissions:
   iaddithisskilling.reload:
