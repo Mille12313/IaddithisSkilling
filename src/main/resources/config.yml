@@ -282,3 +282,5 @@ xp-table:
   '48':  83014
   '49':  91721
   '50':  101333
+other:
+  fishing-captcha-chance: 10

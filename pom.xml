@@ -37,7 +37,16 @@
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
-                        </goals>
+                        </goals><configuration>
+                        <relocations>
+                            <relocation>
+                                <pattern>org.apache.commons.lang3</pattern>
+                                <shadedPattern>dev.mules.muletracker.shaded.commons.lang3</shadedPattern>
+                            </relocation>
+                        </relocations>
+                        <minimizeJar>true</minimizeJar>
+                        <createDependencyReducedPom>false</createDependencyReducedPom>
+                    </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -111,6 +120,11 @@
             <artifactId>Towny</artifactId>
             <version>0.101.1.12</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.17.0</version>
         </dependency>
     </dependencies>
 </project>

@@ -27,6 +27,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import java.util.*;
 
 public class SkillEvents implements Listener {
+    public static final int DEFAULT_FISHING_DROP_CHANCE = 35;
     private final Map<UUID, Location> lastStep = new HashMap<>();
     private final Map<UUID, Integer> stepCount = new HashMap<>();
     private final Map<UUID, Location> lastBoat = new HashMap<>();
@@ -149,7 +150,14 @@ public class SkillEvents implements Listener {
     @EventHandler
     public void onFish(PlayerFishEvent e) {
         if (e.isCancelled()) return;
-        if (e.getState() != PlayerFishEvent.State.CAUGHT_FISH) return;
+        if (e.getState() == PlayerFishEvent.State.CAUGHT_FISH) {
+            onSuccesfulCatch(e);
+        } else if (e.getState() == PlayerFishEvent.State.FISHING) {
+            if (afkProtectionDrop(e)) return;
+        };
+    }
+
+    private void onSuccesfulCatch(PlayerFishEvent e) {
         Player p = e.getPlayer();
         if (p.getGameMode() != GameMode.SURVIVAL) return;
         if (e.getCaught() == null) return;
@@ -177,6 +185,27 @@ public class SkillEvents implements Listener {
             SkillManager.addXP(p, "FISHING", xp);
             sendXp(p, xp, "FISHING");
         }
+    }
+
+    private static boolean afkProtectionDrop(PlayerFishEvent e) {
+        Player player = e.getPlayer();
+        if (PlayerSessionDataService.playerHasFishingCaptcha(player)) {
+            e.setCancelled(true);
+            player.sendMessage("Your line is still tangled, untangle it using /untangle " + PlayerSessionDataService.getCurrentFishingCaptcha(player));
+            return true;
+        }
+
+        ConfigurationSection fishDropCfg = IaddithisSkilling.getInstance()
+                .getConfig()
+                .getConfigurationSection("other");
+        if (fishDropCfg == null) return true;
+        int chance = fishDropCfg.getInt("fishing-captcha-chance", DEFAULT_FISHING_DROP_CHANCE);
+        if (chance > 0 && ChanceUtil.isRandomChance(chance)) {
+            e.setCancelled(true);
+            PlayerSessionDataService.applyPlayerFishingCaptcha(player);
+            return true;
+        }
+        return false;
     }
 
     // Exploration/Sailing (blocks moved; only on foot for exploration)

@@ -45,6 +45,7 @@ public class IaddithisSkilling extends JavaPlugin {
         getCommand("iaddithisskilling").setExecutor(new ReloadCommand());
         getCommand("resetskill").setExecutor(new SkillResetCommand());
         getCommand("skillsmenu").setExecutor(new SkillsGuiCommand());
+        getCommand("untangle").setExecutor(new UntangleCommand());
 
         // ---- Start Highscore webserver via config ----
         FileConfiguration cfg = getConfig();
