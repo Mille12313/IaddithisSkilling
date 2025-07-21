@@ -25,9 +25,10 @@ import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import java.util.*;
+import java.util.logging.Level;
 
 public class SkillEvents implements Listener {
-    public static final int DEFAULT_FISHING_DROP_CHANCE = 35;
+    public static final int DEFAULT_FISHING_DROP_CHANCE = 5;
     private final Map<UUID, Location> lastStep = new HashMap<>();
     private final Map<UUID, Integer> stepCount = new HashMap<>();
     private final Map<UUID, Location> lastBoat = new HashMap<>();
@@ -190,6 +191,7 @@ public class SkillEvents implements Listener {
     private static boolean afkProtectionDrop(PlayerFishEvent e) {
         Player player = e.getPlayer();
         if (PlayerSessionDataService.playerHasFishingCaptcha(player)) {
+            IaddithisSkilling.getInstance().getLogger().log(Level.INFO, "Player " + player.getName() + " already has a fishing captcha but tried to fish anyway");
             e.setCancelled(true);
             player.sendMessage("Your line is still tangled, untangle it using /untangle " + PlayerSessionDataService.getCurrentFishingCaptcha(player));
             return true;
@@ -201,6 +203,7 @@ public class SkillEvents implements Listener {
         if (fishDropCfg == null) return true;
         int chance = fishDropCfg.getInt("fishing-captcha-chance", DEFAULT_FISHING_DROP_CHANCE);
         if (chance > 0 && ChanceUtil.isRandomChance(chance)) {
+            IaddithisSkilling.getInstance().getLogger().log(Level.INFO, "Player " + player.getName() + " has tangled their rod!");
             e.setCancelled(true);
             PlayerSessionDataService.applyPlayerFishingCaptcha(player);
             return true;
