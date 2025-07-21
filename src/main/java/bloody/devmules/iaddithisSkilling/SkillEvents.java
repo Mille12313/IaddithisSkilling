@@ -2,6 +2,7 @@ package bloody.devmules.iaddithisSkilling;
 
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.event.executors.TownyActionEventExecutor;
+import com.palmergames.bukkit.towny.utils.CombatUtil;
 import dev.lone.itemsadder.api.Events.CustomBlockBreakEvent;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -133,6 +134,7 @@ public class SkillEvents implements Listener {
         if (!(e.getDamager() instanceof Player p)) return;
         if (p.getGameMode() != GameMode.SURVIVAL) return;
         if (e.getFinalDamage() <= 0) return;
+        if (CombatUtil.preventDamageCall(e.getDamager(), e.getEntity(), e.getCause())) return;
         if (e.getEntity() instanceof Player) return; // No PvP XP
         if (!(e.getEntity() instanceof LivingEntity target) || EXCLUDED_ENTITIES.contains(target.getType())) return;
 
@@ -267,7 +269,7 @@ public class SkillEvents implements Listener {
 
 
     private static boolean isBlockeEventdOrCancelledByTowny(Cancellable e, Player player, Block block) {
-        return e.isCancelled() || 
+        return e.isCancelled() ||
                 (TownyAPI.getInstance().isTownyWorld(block.getWorld()) && !TownyActionEventExecutor.canDestroy(player, block));
     }
 }
