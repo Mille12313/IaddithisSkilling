@@ -105,11 +105,11 @@
             <version>4.0.10</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Towny via JitPack (no systemPath!) -->
+        <!-- https://mvnrepository.com/artifact/com.github.TownyAdvanced/Towny -->
         <dependency>
-            <groupId>com.github.TownyAdvanced.Towny</groupId>
+            <groupId>com.github.TownyAdvanced</groupId>
             <artifactId>Towny</artifactId>
-            <version>0.101.2.0</version>
+            <version>0.101.1.12</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
