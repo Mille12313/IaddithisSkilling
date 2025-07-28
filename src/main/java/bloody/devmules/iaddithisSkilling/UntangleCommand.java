@@ -29,7 +29,7 @@ public class UntangleCommand implements CommandExecutor {
                 p.sendMessage("Your rod has been untangled!");
                 return true;
             } else {
-                p.sendMessage("You fiddle with the wire, but fail to untangle it (Wrong untangle code! Code is )" + captcha);
+                p.sendMessage("You fiddle with the wire, but fail to untangle it (Wrong untangle code! Code is " + captcha);
                 return true;
             }
         }

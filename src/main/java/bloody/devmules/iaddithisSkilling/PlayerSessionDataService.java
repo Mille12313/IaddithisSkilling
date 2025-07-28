@@ -23,7 +23,7 @@ public class PlayerSessionDataService {
 
 
     public static void applyPlayerFishingCaptcha(Player player) {
-        String fishingCaptcha = RandomStringUtils.insecure().nextAlphabetic(8);
+        String fishingCaptcha = RandomStringUtils.insecure().nextAlphabetic(6).toLowerCase();
         setPlayerSessionData(player, new SessionData(fishingCaptcha));
         player.sendMessage("Your line got tangled! To untangle use: ");
         player.sendMessage("/untangle " + fishingCaptcha);
