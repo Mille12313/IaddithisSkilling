@@ -99,4 +99,11 @@ public class SkillManager {
         }
         return sum;
     }
+
+    // --- TOEGEVOEGD: Geeft het huidige level van een speler voor een skill ---
+    public static int getLevel(Player player, String skill) {
+        FileConfiguration data = IaddithisSkilling.getInstance().getData();
+        String base = player.getUniqueId() + "." + skill;
+        return data.getInt(base + ".level", 1);
+    }
 }

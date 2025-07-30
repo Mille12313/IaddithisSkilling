@@ -14,12 +14,12 @@ public class SkillsCommand implements CommandExecutor {
     public static final String[] ALL_SKILLS = {
             "MINING", "WOODCUTTING", "FARMING",
             "COMBAT", "EXPLORATION", "SAILING",
-            "FISHING", "SLAYER"
+            "FISHING", "INVENTION", "SLAYER"
     };
 
     // Progress bar utility
     private String progressBar(double current, double max, int bars) {
-        double percent = Math.max(0, Math.min(1, current / max));
+        double percent = Math.max(0, Math.min(1, max == 0 ? 1 : current / max));
         int filled = (int) Math.round(bars * percent);
         String bar = "§a" + "█".repeat(filled) + "§7" + "░".repeat(bars - filled);
         return "§8[" + bar + "§8]";
@@ -60,8 +60,15 @@ public class SkillsCommand implements CommandExecutor {
             int progress = (int) (xp - xpThisLevel);
             int needed = xpNextLevel - xpThisLevel;
             String bar = progressBar(progress, needed, 10);
-            sender.sendMessage("§e" + skill + ": §a" + lvl + "§7/§e" + maxLevel +
-                    " " + bar + " §8(" + progress + "/" + needed + " XP)");
+
+            // Optioneel: extra uitleg voor invention
+            if (skill.equals("INVENTION")) {
+                sender.sendMessage("§e" + skill + ": §a" + lvl + "§7/§e" + maxLevel +
+                        " " + bar + " §8(" + progress + "/" + needed + " XP) §7← Salvaging XP");
+            } else {
+                sender.sendMessage("§e" + skill + ": §a" + lvl + "§7/§e" + maxLevel +
+                        " " + bar + " §8(" + progress + "/" + needed + " XP)");
+            }
         }
         return true;
     }

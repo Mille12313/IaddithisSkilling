@@ -20,7 +20,7 @@ public class SkillsGUI implements Listener {
     public static final String[] ALL_SKILLS = {
             "MINING", "WOODCUTTING", "FARMING",
             "COMBAT", "EXPLORATION", "SAILING",
-            "FISHING", "SLAYER"
+            "FISHING", "INVENTION", "SLAYER"
     };
 
     private static final NumberFormat nf = NumberFormat.getInstance();
@@ -45,14 +45,17 @@ public class SkillsGUI implements Listener {
             Material mat = getIcon(skill);
             ItemStack item = new ItemStack(mat);
             ItemMeta meta = item.getItemMeta();
+            List<String> lore = new ArrayList<>();
+            lore.add("§7Level: §a" + lvl + "§7/§e" + maxLevel);
+            lore.add("§7XP: §b" + nf.format((long)xp) + "§7/§b" + nf.format(SkillManager.XP_CAP));
+            lore.add("§7This level: §e" + progress + "§8/§e" + needed);
+            if (skill.equals("INVENTION")) {
+                lore.add("§7Salvage items at lava cauldrons!");
+            }
+            lore.add("");
+            lore.add("§8[Click for details]");
             meta.setDisplayName("§e" + capitalize(skill));
-            meta.setLore(List.of(
-                    "§7Level: §a" + lvl + "§7/§e" + maxLevel,
-                    "§7XP: §b" + nf.format((long)xp) + "§7/§b" + nf.format(SkillManager.XP_CAP),
-                    "§7This level: §e" + progress + "§8/§e" + needed,
-                    "",
-                    "§8[Click for details]"
-            ));
+            meta.setLore(lore);
             item.setItemMeta(meta);
             inv.setItem(10 + i, item);
         }
@@ -81,13 +84,17 @@ public class SkillsGUI implements Listener {
         // Skill info item
         ItemStack info = new ItemStack(getIcon(skill));
         ItemMeta infoMeta = info.getItemMeta();
+        List<String> detailLore = new ArrayList<>();
+        detailLore.add("§7Level: §a" + lvl + "§7/§e" + maxLevel);
+        detailLore.add("§7Total XP: §b" + nf.format((long)xp) + "§7/§b" + nf.format(SkillManager.XP_CAP));
+        detailLore.add("§7This level: §e" + progress + "§8/§e" + needed);
+        detailLore.add(bar);
+        if (skill.equals("INVENTION")) {
+            detailLore.add("§7Level up by salvaging items!");
+            detailLore.add("§7Higher level = better salvage rewards.");
+        }
         infoMeta.setDisplayName("§e" + capitalize(skill) + " Progress");
-        infoMeta.setLore(List.of(
-                "§7Level: §a" + lvl + "§7/§e" + maxLevel,
-                "§7Total XP: §b" + nf.format((long)xp) + "§7/§b" + nf.format(SkillManager.XP_CAP),
-                "§7This level: §e" + progress + "§8/§e" + needed,
-                bar
-        ));
+        infoMeta.setLore(detailLore);
         info.setItemMeta(infoMeta);
         inv.setItem(13, info);
 
@@ -140,6 +147,7 @@ public class SkillsGUI implements Listener {
             case "SAILING": return Material.OAK_BOAT;
             case "FISHING": return Material.FISHING_ROD;
             case "SLAYER": return Material.BONE;
+            case "INVENTION": return Material.ANVIL; // <-- ANVIL icon!
             default: return Material.BOOK;
         }
     }

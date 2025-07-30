@@ -8,11 +8,15 @@ import java.io.File;
 import java.io.IOException;
 
 public class IaddithisSkilling extends JavaPlugin {
-    private File dataFile;
-    private FileConfiguration dataConfig;
     private static IaddithisSkilling instance;
 
-    private HighscoreWebServer webServer; // <-- Toegevoegd
+    private File dataFile;
+    private FileConfiguration dataConfig;
+
+    private File inventionFile;
+    private FileConfiguration inventionConfig;
+
+    private HighscoreWebServer webServer;
 
     @Override
     public void onEnable() {
@@ -34,11 +38,20 @@ public class IaddithisSkilling extends JavaPlugin {
         }
         dataConfig = YamlConfiguration.loadConfiguration(dataFile);
 
-        // Register events (listeners)
+        // invention.yml
+        inventionFile = new File(getDataFolder(), "invention.yml");
+        if (!inventionFile.exists()) {
+            inventionFile.getParentFile().mkdirs();
+            saveResource("invention.yml", false); // Maakt default aan uit resources
+        }
+        inventionConfig = YamlConfiguration.loadConfiguration(inventionFile);
+
+        // Register listeners (ALLES registeren dat je had!)
         getServer().getPluginManager().registerEvents(new SkillEvents(), this);
         getServer().getPluginManager().registerEvents(new SkillsGuiCommand(), this);
+        getServer().getPluginManager().registerEvents(new SalvageCauldronListener(), this);
 
-        // Register commands
+        // Register commands (volledig)
         getCommand("skills").setExecutor(new SkillsCommand());
         getCommand("highscore").setExecutor(new HighscoreCommand());
         getCommand("togglenotifications").setExecutor(new ToggleNotificationCommand());
@@ -53,7 +66,7 @@ public class IaddithisSkilling extends JavaPlugin {
             String address = cfg.getString("webserver.bind-address", "0.0.0.0");
             int port = cfg.getInt("webserver.port", 8888);
             try {
-                webServer = new HighscoreWebServer(address, port); // <<-- zie aangepaste constructor!
+                webServer = new HighscoreWebServer(address, port);
                 webServer.start();
                 getLogger().info("Highscore webserver started at http://" + address + ":" + port + "/");
             } catch (IOException e) {
@@ -68,7 +81,7 @@ public class IaddithisSkilling extends JavaPlugin {
     public void onDisable() {
         saveData();
 
-        // ---- Stop de webserver netjes ----
+        // Stop webserver netjes
         if (webServer != null) {
             webServer.stop();
             getLogger().info("Highscore webserver stopped.");
@@ -77,22 +90,32 @@ public class IaddithisSkilling extends JavaPlugin {
         getLogger().info("IaddithisSkilling disabled.");
     }
 
-    /** @return singleton instance */
     public static IaddithisSkilling getInstance() {
         return instance;
     }
 
-    /** @return the in‑memory data.yml config */
     public FileConfiguration getData() {
         return dataConfig;
     }
 
-    /** save data.yml to disk */
     public void saveData() {
         try {
             dataConfig.save(dataFile);
         } catch (IOException e) {
             getLogger().severe("Could not save data.yml!");
+            e.printStackTrace();
+        }
+    }
+
+    public FileConfiguration getInventionConfig() {
+        return inventionConfig;
+    }
+
+    public void saveInventionConfig() {
+        try {
+            inventionConfig.save(inventionFile);
+        } catch (IOException e) {
+            getLogger().severe("Could not save invention.yml!");
             e.printStackTrace();
         }
     }
