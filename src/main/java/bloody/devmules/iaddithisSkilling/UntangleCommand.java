@@ -14,7 +14,12 @@ public class UntangleCommand implements CommandExecutor {
             return false;
         }
         if (sender instanceof Player p) {
-            if (handleValidCommand(args[0], p)) return true;
+            if (handleValidCommand(args[0], p)) {
+                return true;
+            } else {
+                sender.sendMessage("Your line is currently not tangled!");
+                return false;
+            }
         }
         sender.sendMessage("This command can only be executed by a player");
         return false;
