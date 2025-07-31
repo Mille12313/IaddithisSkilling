@@ -1,6 +1,8 @@
 package bloody.devmules.iaddithisSkilling;
 
 import dev.lone.itemsadder.api.CustomStack;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.boss.BarColor;
@@ -28,18 +30,23 @@ public class SalvageCauldronListener implements Listener {
     @EventHandler
     public void onCauldronSalvage(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND || event.getClickedBlock() == null) return;
+
         Block block = event.getClickedBlock();
-        if (block.getType() != Material.LAVA_CAULDRON) {
-            event.getPlayer().sendMessage(ChatColor.RED + "[Invention] This cauldron must be filled with lava to salvage items.");
+        Material type = block.getType();
+
+        if (type != Material.LAVA_CAULDRON) {
+            if (type == Material.CAULDRON || type == Material.WATER_CAULDRON || type == Material.POWDER_SNOW_CAULDRON) {
+                event.getPlayer().sendMessage(ChatColor.RED + "[Salvage] This cauldron must be filled with lava to salvage items.");
+            }
             return;
         }
+
         Player player = event.getPlayer();
         Location cauldronLoc = block.getLocation();
 
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand == null || hand.getType() == Material.AIR) return;
 
-        // Detect ItemsAdder ID, anders vanilla type
         String handItemId;
         CustomStack cs = CustomStack.byItemStack(hand);
         if (cs != null) {
@@ -48,27 +55,26 @@ public class SalvageCauldronListener implements Listener {
             handItemId = hand.getType().toString().toUpperCase();
         }
 
-        FileConfiguration inventionConfig = IaddithisSkilling.getInstance().getInventionConfig();
-        ConfigurationSection salvageSec = inventionConfig.getConfigurationSection("salvage");
+        FileConfiguration salvageConfig = IaddithisSkilling.getInstance().getSalvageConfig();
+        ConfigurationSection salvageSec = salvageConfig.getConfigurationSection("salvage");
         if (salvageSec == null) {
-            player.sendMessage(ChatColor.RED + "[Invention] No salvage mapping found.");
+            player.sendMessage(ChatColor.RED + "[Salvage] No salvage mapping found.");
             return;
         }
 
         ConfigurationSection entry = salvageSec.getConfigurationSection(handItemId);
         if (entry == null) {
-            player.sendMessage(ChatColor.RED + "[Invention] You cannot salvage this item.");
+            player.sendMessage(ChatColor.RED + "[Salvage] You cannot salvage this item.");
             return;
         }
 
-        // XP per item
         double xp = entry.getDouble("xp", 0);
 
-        // Loot per item (list)
         List<Map<String, Object>> lootList = new ArrayList<>();
         if (entry.isList("loot")) {
             for (Object o : entry.getList("loot")) {
                 if (o instanceof Map) {
+                    //noinspection unchecked
                     lootList.add((Map<String, Object>) o);
                 }
             }
@@ -76,23 +82,22 @@ public class SalvageCauldronListener implements Listener {
 
         SalvageJob job = activeSalvages.get(cauldronLoc);
         if (job == null) {
-            job = new SalvageJob(cauldronLoc, player);
+            job = new SalvageJob(cauldronLoc);
             activeSalvages.put(cauldronLoc, job);
             job.start();
         }
         if (job.queue.size() >= MAX_QUEUE) {
-            player.sendMessage(ChatColor.RED + "[Invention] This cauldron is already processing the maximum number of items.");
+            player.sendMessage(ChatColor.RED + "[Salvage] This cauldron is already processing the maximum number of items.");
             return;
         }
         job.queue.add(new SalvageEntry(player, handItemId, hand.clone(), lootList, xp));
-        player.sendMessage(ChatColor.GOLD + "[Invention] Your item was added to the salvage queue! Estimated time: " + (job.queue.size() * SALVAGE_TIME) + "s");
+        player.sendMessage(ChatColor.GOLD + "[Salvage] Your item was added to the salvage queue! Estimated time: " + (job.queue.size() * SALVAGE_TIME) + "s");
 
-        // Remove 1 item from hand
         hand.setAmount(hand.getAmount() - 1);
         player.getInventory().setItemInMainHand(hand.getAmount() <= 0 ? null : hand);
 
         event.setCancelled(true);
-        if (job != null) job.updateBossBar();
+        job.updateBossBar();
     }
 
     private class SalvageJob {
@@ -102,8 +107,9 @@ public class SalvageCauldronListener implements Listener {
         BossBar bossBar = null;
         SalvageEntry processing = null;
         int timer = 0;
+        boolean paused = false;
 
-        SalvageJob(Location cauldronLoc, Player starter) {
+        SalvageJob(Location cauldronLoc) {
             this.cauldronLoc = cauldronLoc;
         }
 
@@ -111,32 +117,43 @@ public class SalvageCauldronListener implements Listener {
             task = new BukkitRunnable() {
                 @Override
                 public void run() {
-                    if (queue.isEmpty()) {
+                    if (queue.isEmpty() && processing == null) {
                         removeBossBar();
                         activeSalvages.remove(cauldronLoc);
                         this.cancel();
                         return;
                     }
+
                     if (processing == null) {
                         processing = queue.poll();
                         timer = 0;
-                        processing.player.sendMessage(ChatColor.AQUA + "[Invention] Salvaging started! Stay close to the cauldron (" + SALVAGE_TIME + " seconds).");
+                        paused = false;
+                        processing.player.sendMessage(ChatColor.AQUA + "[Salvage] Salvaging started! Stay close to the cauldron (" + SALVAGE_TIME + " seconds).");
                         cauldronLoc.getWorld().playSound(cauldronLoc, Sound.BLOCK_FURNACE_FIRE_CRACKLE, SoundCategory.BLOCKS, 1f, 1f);
                         createOrUpdateBossBar(processing.player);
                     }
 
-                    // Effecten
+                    boolean tooFar = !processing.player.isOnline()
+                            || processing.player.getLocation().distanceSquared(cauldronLoc.clone().add(0.5, 1, 0.5)) > (MAX_DIST * MAX_DIST);
+
+                    if (tooFar) {
+                        if (!paused) {
+                            paused = true;
+                            removeBossBar();
+                            processing.player.sendMessage(ChatColor.RED + "[Salvage] You moved too far from the cauldron! Salvaging paused.");
+                        }
+                        return;
+                    } else {
+                        if (paused) {
+                            paused = false;
+                            processing.player.sendMessage(ChatColor.AQUA + "[Salvage] You are back in range. Salvaging resumed.");
+                            createOrUpdateBossBar(processing.player);
+                        }
+                    }
+
                     cauldronLoc.getWorld().spawnParticle(Particle.SMOKE, cauldronLoc.clone().add(0.5, 1.1, 0.5), 12, 0.28, 0.10, 0.28, 0.03);
                     if (timer % 4 == 0)
                         cauldronLoc.getWorld().playSound(cauldronLoc, Sound.BLOCK_LAVA_POP, SoundCategory.BLOCKS, 0.5f, 0.8f);
-
-                    // Te ver weg? Pauseer (niet droppen!)
-                    if (!processing.player.isOnline() || processing.player.getLocation().distanceSquared(cauldronLoc.clone().add(0.5, 1, 0.5)) > (MAX_DIST * MAX_DIST)) {
-                        removeBossBar();
-                        processing.player.sendMessage(ChatColor.RED + "[Invention] You moved too far from the cauldron! Salvaging paused.");
-                        // Salvage wordt gepauzeerd, NIET verloren!
-                        return;
-                    }
 
                     timer++;
                     updateBossBar();
@@ -152,9 +169,13 @@ public class SalvageCauldronListener implements Listener {
                             given = true;
                         }
                         if (processing.xp > 0 && given) {
-                            SkillManager.addXP(processing.player, "INVENTION", processing.xp);
+                            SkillManager.addXP(processing.player, "SALVAGE", processing.xp);
+                            processing.player.spigot().sendMessage(
+                                    ChatMessageType.ACTION_BAR,
+                                    new TextComponent("✨ +" + (int)processing.xp + " SALVAGE XP")
+                            );
                         }
-                        processing.player.sendMessage(ChatColor.GREEN + "[Invention] Salvaging complete! Check your inventory.");
+                        processing.player.sendMessage(ChatColor.GREEN + "[Salvage] Salvaging complete! Check your inventory.");
                         cauldronLoc.getWorld().spawnParticle(Particle.SMOKE, cauldronLoc.clone().add(0.5, 1.1, 0.5), 18, 0.32, 0.13, 0.32, 0.05);
                         cauldronLoc.getWorld().playSound(cauldronLoc, Sound.BLOCK_ANVIL_USE, SoundCategory.BLOCKS, 0.7f, 1.2f);
 
@@ -175,7 +196,7 @@ public class SalvageCauldronListener implements Listener {
         }
 
         void updateBossBar() {
-            if (processing == null || bossBar == null) {
+            if (processing == null || bossBar == null || paused) {
                 removeBossBar();
                 return;
             }
@@ -192,27 +213,29 @@ public class SalvageCauldronListener implements Listener {
             }
         }
 
-        // Loot rolling met skill én durability
         private List<ItemStack> rollLoot(Player player, ItemStack inputStack, List<Map<String, Object>> lootList) {
             List<ItemStack> result = new ArrayList<>();
-            int inventionLevel = SkillManager.getLevel(player, "INVENTION");
+            int salvageLevel = SkillManager.getLevel(player, "SALVAGE");
 
-            double bonusPerLevel = 0.3; // 0.3% per level
-            double maxBonus = 20.0;     // max +20%
+            // Level-bonus: 0.3% per level, max +20%
+            double bonusPerLevel = 0.3;
+            double maxLevelBonus  = 20.0;
+            double levelBonus     = Math.min(salvageLevel * bonusPerLevel, maxLevelBonus);
 
-            int maxDurability = inputStack.getType().getMaxDurability();
-            int durability = maxDurability - inputStack.getDurability(); // huidige durability (hoe meer, hoe beter)
-
-            double durabilityBonus = 0;
-            if (maxDurability > 0) {
-                durabilityBonus = durability * 0.5; // Elke punt 0.5%
-            }
+            // Durability-bonus: proportioneel t.o.v. maxDurability, max +20%
+            int maxDurability     = inputStack.getType().getMaxDurability();
+            int currentDurability = maxDurability - inputStack.getDurability();
+            double maxDurabilityBonus = 20.0;
+            double durabilityRatio    = maxDurability > 0
+                    ? (double) currentDurability / maxDurability
+                    : 0;
+            double durabilityBonus    = durabilityRatio * maxDurabilityBonus;
 
             for (Map<String, Object> lootEntry : lootList) {
                 String id = (String) lootEntry.get("id");
                 int baseChance = (int) lootEntry.get("chance");
-                double bonus = Math.min(inventionLevel * bonusPerLevel, maxBonus) + durabilityBonus;
-                double finalChance = Math.min(baseChance + bonus, 99.0);
+
+                double finalChance = Math.min(baseChance + levelBonus + durabilityBonus, 99.0);
 
                 if (Math.random() * 100 < finalChance) {
                     ItemStack outStack = parseOutputItem(id);

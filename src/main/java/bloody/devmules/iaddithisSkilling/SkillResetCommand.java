@@ -1,4 +1,3 @@
-// src/main/java/bloody/devmules/iaddithisSkilling/SkillResetCommand.java
 package bloody.devmules.iaddithisSkilling;
 
 import org.bukkit.command.Command;
@@ -11,7 +10,7 @@ import java.util.Set;
 public class SkillResetCommand implements CommandExecutor {
     private static final String[] ALL_SKILLS = {
             "MINING", "WOODCUTTING", "FARMING", "COMBAT",
-            "EXPLORATION", "SAILING", "FISHING", "SLAYER"
+            "EXPLORATION", "SAILING", "FISHING", "SLAYER", "SALVAGE"
     };
 
     @Override

@@ -1,4 +1,3 @@
-// src/main/java/bloody/devmules/iaddithisSkilling/SkillsGuiCommand.java
 package bloody.devmules.iaddithisSkilling;
 
 import org.bukkit.Bukkit;
@@ -24,10 +23,9 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
     public static final String[] ALL_SKILLS = {
             "MINING", "WOODCUTTING", "FARMING",
             "COMBAT", "EXPLORATION", "SAILING",
-            "FISHING", "SLAYER"
+            "FISHING", "SLAYER", "SALVAGE"
     };
 
-    // Main menu
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player p)) {
@@ -55,7 +53,6 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
             int progress = (int) (xp - xpThisLevel);
             int needed = xpNextLevel - xpThisLevel;
 
-            // Progressbar
             String bar = progressBar(progress, needed, 18);
 
             ItemStack skillItem = new ItemStack(getIcon(skill));
@@ -77,7 +74,6 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.7f, 1.15f);
     }
 
-    // Skill detail menu
     public void openDetailGui(Player p, String skill) {
         FileConfiguration data = IaddithisSkilling.getInstance().getData();
         FileConfiguration cfg = IaddithisSkilling.getInstance().getConfig();
@@ -94,7 +90,6 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         int needed = xpNextLevel - xpThisLevel;
         String bar = progressBar(progress, needed, 22);
 
-        // Find next reward for this skill
         String rewardText = "§cNo more rewards.";
         ConfigurationSection rewards = cfg.getConfigurationSection("rewards." + skill);
         if (rewards != null) {
@@ -118,16 +113,13 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
             }
         }
 
-        // Ranking
         int rank = getSkillRank(skill, p.getUniqueId());
         String rankString = (rank > 0 ? "§b#" + rank : "§7Not ranked");
 
-        // Top 3 players
         List<String> topPlayers = getTop3(skill);
 
         Inventory inv = Bukkit.createInventory(null, 27, "§9" + capitalize(skill) + " Details");
 
-        // Main skill item (center)
         ItemStack skillItem = new ItemStack(getIcon(skill));
         ItemMeta meta = skillItem.getItemMeta();
         meta.setDisplayName("§b" + capitalize(skill) + " §7(" + lvl + "/" + maxLevel + ")");
@@ -140,7 +132,6 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         skillItem.setItemMeta(meta);
         inv.setItem(13, skillItem);
 
-        // Your rank (right)
         ItemStack rankItem = new ItemStack(Material.NAME_TAG);
         ItemMeta rankMeta = rankItem.getItemMeta();
         rankMeta.setDisplayName("§aYour Ranking");
@@ -148,7 +139,6 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         rankItem.setItemMeta(rankMeta);
         inv.setItem(15, rankItem);
 
-        // Top 3 (left)
         ItemStack topItem = new ItemStack(Material.PLAYER_HEAD);
         ItemMeta topMeta = topItem.getItemMeta();
         topMeta.setDisplayName("§eTop 3 in " + capitalize(skill));
@@ -162,14 +152,12 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         topItem.setItemMeta(topMeta);
         inv.setItem(11, topItem);
 
-        // Back button
         ItemStack back = new ItemStack(Material.BARRIER);
         ItemMeta bm = back.getItemMeta();
         bm.setDisplayName("§cBack");
         back.setItemMeta(bm);
         inv.setItem(26, back);
 
-        // Highscore info item
         ItemStack hs = new ItemStack(Material.BOOK);
         ItemMeta hsm = hs.getItemMeta();
         hsm.setDisplayName("§eSee global highscore");
@@ -181,7 +169,6 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.8f, 1.1f);
     }
 
-    // Listener: Inventory clicks
     @EventHandler
     public void onInvClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p)) return;
@@ -197,19 +184,17 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         if (title.endsWith("Details")) {
             e.setCancelled(true);
             int slot = e.getRawSlot();
-            if (slot == 26) { // back button
+            if (slot == 26) {
                 p.closeInventory();
                 Bukkit.getScheduler().runTaskLater(IaddithisSkilling.getInstance(), () -> openMainGui(p), 2);
             }
             if (slot == 17) {
-                // /highscore <skill> tip (geen echte click want /highscore is een chat command)
                 p.closeInventory();
                 p.sendMessage("§7Type §b/highscore " + title.replace(" Details", "").trim().toLowerCase() + "§7 in chat!");
             }
         }
     }
 
-    // Helper: get top 3 players by skill
     private List<String> getTop3(String skill) {
         FileConfiguration data = IaddithisSkilling.getInstance().getData();
         Map<String, Integer> scores = new HashMap<>();
@@ -229,7 +214,6 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         return res;
     }
 
-    // Helper: get rank of player by skill
     private int getSkillRank(String skill, UUID uuid) {
         FileConfiguration data = IaddithisSkilling.getInstance().getData();
         Map<String, Integer> scores = new HashMap<>();
@@ -247,7 +231,6 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         return -1;
     }
 
-    // Progressbar
     private String progressBar(int current, int max, int bars) {
         if (max == 0) return "";
         int full = (int) ((double) current / max * bars);
@@ -259,7 +242,6 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         return bar.toString();
     }
 
-    // Icon per skill
     private Material getIcon(String skill) {
         switch (skill) {
             case "MINING": return Material.DIAMOND_PICKAXE;
@@ -270,6 +252,7 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
             case "SAILING": return Material.OAK_BOAT;
             case "FISHING": return Material.FISHING_ROD;
             case "SLAYER": return Material.ZOMBIE_HEAD;
+            case "SALVAGE": return Material.CAULDRON;
             default: return Material.BOOK;
         }
     }
@@ -278,7 +261,6 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
         return str.substring(0,1).toUpperCase() + str.substring(1).toLowerCase();
     }
 
-    // Plak hem hieronder!
     private String skillDesc(String skill) {
         switch (skill) {
             case "MINING": return "Break ores & stone to gain XP.";
@@ -289,8 +271,8 @@ public class SkillsGuiCommand implements CommandExecutor, Listener {
             case "SAILING": return "Sail with a boat for Sailing XP.";
             case "FISHING": return "Catch fish for Fishing XP.";
             case "SLAYER": return "Defeat mobs for Slayer XP.";
+            case "SALVAGE": return "Salvage items at lava cauldrons for XP.";
             default: return "";
         }
     }
 }
-

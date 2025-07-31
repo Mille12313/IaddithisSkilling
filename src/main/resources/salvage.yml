@@ -1,0 +1,19 @@
+salvage:
+  DIAMOND_AXE:
+    xp: 32
+    tiers: [DIAMOND, IRON]
+    ingots: 3
+    loot:
+      - id: _iainternal:small_iron_scrap
+        chance: 60
+      - id: _iainternal:big_iron_scrap
+        chance: 40
+  IRON_SWORD:
+    xp: 12
+    tiers: [IRON]
+    ingots: 2
+    loot:
+      - id: IRON_INGOT
+        chance: 90
+      - id: STICK
+        chance: 10

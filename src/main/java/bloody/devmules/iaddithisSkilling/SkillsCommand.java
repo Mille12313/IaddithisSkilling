@@ -14,7 +14,7 @@ public class SkillsCommand implements CommandExecutor {
     public static final String[] ALL_SKILLS = {
             "MINING", "WOODCUTTING", "FARMING",
             "COMBAT", "EXPLORATION", "SAILING",
-            "FISHING", "INVENTION", "SLAYER"
+            "FISHING", "SALVAGE", "SLAYER"
     };
 
     // Progress bar utility

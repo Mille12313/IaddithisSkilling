@@ -13,8 +13,8 @@ public class IaddithisSkilling extends JavaPlugin {
     private File dataFile;
     private FileConfiguration dataConfig;
 
-    private File inventionFile;
-    private FileConfiguration inventionConfig;
+    private File salvageFile;
+    private FileConfiguration salvageConfig;
 
     private HighscoreWebServer webServer;
 
@@ -38,20 +38,20 @@ public class IaddithisSkilling extends JavaPlugin {
         }
         dataConfig = YamlConfiguration.loadConfiguration(dataFile);
 
-        // invention.yml
-        inventionFile = new File(getDataFolder(), "invention.yml");
-        if (!inventionFile.exists()) {
-            inventionFile.getParentFile().mkdirs();
-            saveResource("invention.yml", false); // Maakt default aan uit resources
+        // initialize salvage.yml
+        salvageFile = new File(getDataFolder(), "salvage.yml");
+        if (!salvageFile.exists()) {
+            salvageFile.getParentFile().mkdirs();
+            saveResource("salvage.yml", false);
         }
-        inventionConfig = YamlConfiguration.loadConfiguration(inventionFile);
+        salvageConfig = YamlConfiguration.loadConfiguration(salvageFile);
 
-        // Register listeners (ALLES registeren dat je had!)
+        // Register listeners
         getServer().getPluginManager().registerEvents(new SkillEvents(), this);
         getServer().getPluginManager().registerEvents(new SkillsGuiCommand(), this);
         getServer().getPluginManager().registerEvents(new SalvageCauldronListener(), this);
 
-        // Register commands (volledig)
+        // Register commands
         getCommand("skills").setExecutor(new SkillsCommand());
         getCommand("highscore").setExecutor(new HighscoreCommand());
         getCommand("togglenotifications").setExecutor(new ToggleNotificationCommand());
@@ -60,7 +60,7 @@ public class IaddithisSkilling extends JavaPlugin {
         getCommand("skillsmenu").setExecutor(new SkillsGuiCommand());
         getCommand("untangle").setExecutor(new UntangleCommand());
 
-        // ---- Start Highscore webserver via config ----
+        // Start Highscore webserver via config
         FileConfiguration cfg = getConfig();
         if (cfg.getBoolean("webserver.enabled", false)) {
             String address = cfg.getString("webserver.bind-address", "0.0.0.0");
@@ -81,7 +81,6 @@ public class IaddithisSkilling extends JavaPlugin {
     public void onDisable() {
         saveData();
 
-        // Stop webserver netjes
         if (webServer != null) {
             webServer.stop();
             getLogger().info("Highscore webserver stopped.");
@@ -107,15 +106,15 @@ public class IaddithisSkilling extends JavaPlugin {
         }
     }
 
-    public FileConfiguration getInventionConfig() {
-        return inventionConfig;
+    public FileConfiguration getSalvageConfig() {
+        return salvageConfig;
     }
 
-    public void saveInventionConfig() {
+    public void saveSalvageConfig() {
         try {
-            inventionConfig.save(inventionFile);
+            salvageConfig.save(salvageFile);
         } catch (IOException e) {
-            getLogger().severe("Could not save invention.yml!");
+            getLogger().severe("Could not save salvage.yml!");
             e.printStackTrace();
         }
     }

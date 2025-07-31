@@ -20,7 +20,7 @@ public class SkillsGUI implements Listener {
     public static final String[] ALL_SKILLS = {
             "MINING", "WOODCUTTING", "FARMING",
             "COMBAT", "EXPLORATION", "SAILING",
-            "FISHING", "INVENTION", "SLAYER"
+            "FISHING", "SALVAGE", "SLAYER"
     };
 
     private static final NumberFormat nf = NumberFormat.getInstance();
