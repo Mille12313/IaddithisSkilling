@@ -50,7 +50,6 @@ public class IaddithisSkilling extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SkillEvents(), this);
         getServer().getPluginManager().registerEvents(new SkillsGuiCommand(), this);
         getServer().getPluginManager().registerEvents(new SalvageCauldronListener(), this);
-        getServer().getPluginManager().registerEvents(new RandomOtherListeners(), this);
 
         // Register commands
         getCommand("skills").setExecutor(new SkillsCommand());
