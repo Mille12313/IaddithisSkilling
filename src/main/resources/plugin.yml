@@ -9,6 +9,7 @@ depend:
 softdepend:
   - ItemsAdder
   - WorldGuard
+  - MythicMobs
 
 commands:
   skills:
@@ -16,7 +17,7 @@ commands:
   highscore:
     description: Show the global highscore (top 10).
   togglenotifications:
-    description: Toggle XP & level‑up notifications.
+    description: Toggle XP & level-up notifications.
     aliases: [togglexp, xpnotifications]
   iaddithisskilling:
     description: Reload plugin configuration.
@@ -29,13 +30,49 @@ commands:
     description: Open your Skills GUI menu.
     aliases: [skillsgui]
   untangle:
-    description: Untangle your rod.
+    description: Untangle your fishing rod.
     aliases: [untangle]
+
+  # Slayer: shop, points, core
+  slayershop:
+    description: Open the Slayer Shop GUI.
+    permission: iaddithisskilling.slayer.shop
+    aliases: [slayerstore, ss]
+  slayerpoints:
+    description: Show your Slayer points and streak.
+    permission: iaddithisskilling.slayer.points
+    aliases: [sp]
+  slayer:
+    description: Manage your Slayer tasks (new/task/skip/cancel).
+    permission: iaddithisskilling.slayer.use
+    usage: /slayer <new|task|skip|cancel>
+    aliases: [slay]
+
+  # Ingame shop editor
+  slayershopedit:
+    description: Open the Slayer shop editor (GUI).
+    permission: iaddithisskilling.slayer.edit
+    aliases: [ssedit]
 
 permissions:
   iaddithisskilling.reload:
     description: Allows reloading the plugin.
     default: op
+
   iaddithisskilling.resetskill:
     description: Allows resetting a skill for all players.
+    default: op
+
+  # Slayer permissions
+  iaddithisskilling.slayer.shop:
+    description: Access the Slayer Shop.
+    default: true
+  iaddithisskilling.slayer.points:
+    description: Access to view Slayer points.
+    default: true
+  iaddithisskilling.slayer.use:
+    description: Access to /slayer commands.
+    default: true
+  iaddithisskilling.slayer.edit:
+    description: Access to the ingame Slayer shop editor.
     default: op

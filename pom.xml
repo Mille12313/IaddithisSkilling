@@ -15,6 +15,8 @@
     <properties>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Zet gelijk aan jouw MythicMobs serverversie -->
+        <mythic.version>5.3.5</mythic.version>
     </properties>
 
     <build>
@@ -24,10 +26,10 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <release>${java.version}</release>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -37,20 +39,22 @@
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
-                        </goals><configuration>
-                        <relocations>
-                            <relocation>
-                                <pattern>org.apache.commons.lang3</pattern>
-                                <shadedPattern>dev.mules.muletracker.shaded.commons.lang3</shadedPattern>
-                            </relocation>
-                        </relocations>
-                        <minimizeJar>true</minimizeJar>
-                        <createDependencyReducedPom>false</createDependencyReducedPom>
-                    </configuration>
+                        </goals>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.apache.commons.lang3</pattern>
+                                    <shadedPattern>dev.mules.muletracker.shaded.commons.lang3</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <minimizeJar>true</minimizeJar>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
+
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -84,12 +88,15 @@
             <id>enginehub</id>
             <url>https://maven.enginehub.org/repo/</url>
         </repository>
-        <!-- JitPack for Towny -->
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
-
+        <repository>
+            <id>nexus</id>
+            <name>Lumine Releases</name>
+            <url>https://mvn.lumine.io/repository/maven-public/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -100,6 +107,7 @@
             <version>1.21.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
+
         <!-- PlaceholderAPI -->
         <dependency>
             <groupId>me.clip</groupId>
@@ -107,6 +115,7 @@
             <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
+
         <!-- ItemsAdder API -->
         <dependency>
             <groupId>dev.lone</groupId>
@@ -114,17 +123,28 @@
             <version>4.0.10</version>
             <scope>provided</scope>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.github.TownyAdvanced/Towny -->
+
+        <!-- Towny -->
         <dependency>
             <groupId>com.github.TownyAdvanced</groupId>
             <artifactId>Towny</artifactId>
             <version>0.101.1.12</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Apache Commons Lang (shaded) -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.17.0</version>
+        </dependency>
+
+        <!-- MythicMobs distributie (API + core) -->
+        <dependency>
+            <groupId>io.lumine</groupId>
+            <artifactId>Mythic-Dist</artifactId>
+            <version>5.6.1</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

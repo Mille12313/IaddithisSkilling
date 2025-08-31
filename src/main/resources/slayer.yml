@@ -1,0 +1,57 @@
+settings:
+  basePointsPerTask: 10
+  skipCost: 30
+  streakBonus:
+    enabled: true
+    fromStreak: 3
+    bonusType: "flat"   # "flat" of "multiplier"
+    flatAmount: 5
+    multiplier: 1.25
+
+tasks:
+  - id: "lava_mite"
+    mythicMob: "Lava_Mite"
+    amountMin: 15
+    amountMax: 30
+    points: 12
+  - id: "fireimps"
+    mythicMob: "Fire_Imp"
+    amountMin: 10
+    amountMax: 20
+    points: 14
+
+
+shop:
+  - key: "prospector_crate"
+    display: "&6Prospector Crate"
+    cost: 50
+    icon:
+      type: "vanilla"
+      material: "CHEST"
+    give:
+      type: "commands"
+      commands:
+        - "give %player% experience_bottle 16"
+        - "iagive %player% _iainternal:miner_top"
+
+  - key: "lumber_hat"
+    display: "&aLumberjack Hat"
+    cost: 30
+    icon:
+      type: "itemsadder"
+      item: "_iainternal:big_diamond_scrap"
+    give:
+      type: "itemsadder"
+      item: "_iainternal:big_diamond_scrap"
+      amount: 1
+
+  - key: "diamonds_8"
+    display: "&bDiamonds x8"
+    cost: 20
+    icon:
+      type: "vanilla"
+      material: "DIAMOND"
+    give:
+      type: "vanilla"
+      material: "DIAMOND"
+      amount: 8

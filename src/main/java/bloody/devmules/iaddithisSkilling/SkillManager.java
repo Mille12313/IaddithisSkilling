@@ -106,4 +106,7 @@ public class SkillManager {
         String base = player.getUniqueId() + "." + skill;
         return data.getInt(base + ".level", 1);
     }
+
+    public static void init(FileConfiguration config) {
+    }
 }

@@ -22,10 +22,10 @@ public class IaddithisSkilling extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
-        // load default config.yml
+        // 1) Load config.yml
         saveDefaultConfig();
 
-        // initialize data.yml
+        // 2) Load data.yml
         dataFile = new File(getDataFolder(), "data.yml");
         if (!dataFile.exists()) {
             dataFile.getParentFile().mkdirs();
@@ -38,7 +38,7 @@ public class IaddithisSkilling extends JavaPlugin {
         }
         dataConfig = YamlConfiguration.loadConfiguration(dataFile);
 
-        // initialize salvage.yml
+        // 3) Load salvage.yml
         salvageFile = new File(getDataFolder(), "salvage.yml");
         if (!salvageFile.exists()) {
             salvageFile.getParentFile().mkdirs();
@@ -46,21 +46,54 @@ public class IaddithisSkilling extends JavaPlugin {
         }
         salvageConfig = YamlConfiguration.loadConfiguration(salvageFile);
 
-        // Register listeners
+        // 4) SkillManager XP-table init (optional refactor)
+        try {
+            SkillManager.init(getConfig());
+        } catch (Throwable t) {
+            getLogger().warning("SkillManager.init skipped or failed: " + t.getMessage());
+        }
+
+        // 5) Slayer service (slayer.yml) + GUIs
+        SlayerService.init();
+        getServer().getPluginManager().registerEvents(new SlayerShopGUI(), this);
+        getServer().getPluginManager().registerEvents(new SlayerShopEditorGUI(), this); // <--- editor listener
+
+        // 5b) Slayer kills (MythicMobs only)
+        if (getServer().getPluginManager().isPluginEnabled("MythicMobs")) {
+            getServer().getPluginManager().registerEvents(new SlayerKillListenerMM(), this);
+        } else {
+            getLogger().info("MythicMobs not found: Slayer tasks will not track progress.");
+        }
+
+        // 6) Other listeners
         getServer().getPluginManager().registerEvents(new SkillEvents(), this);
         getServer().getPluginManager().registerEvents(new SkillsGuiCommand(), this);
         getServer().getPluginManager().registerEvents(new SalvageCauldronListener(), this);
 
-        // Register commands
-        getCommand("skills").setExecutor(new SkillsCommand());
-        getCommand("highscore").setExecutor(new HighscoreCommand());
-        getCommand("togglenotifications").setExecutor(new ToggleNotificationCommand());
-        getCommand("iaddithisskilling").setExecutor(new ReloadCommand());
-        getCommand("resetskill").setExecutor(new SkillResetCommand());
-        getCommand("skillsmenu").setExecutor(new SkillsGuiCommand());
-        getCommand("untangle").setExecutor(new UntangleCommand());
+        // 7) Commands
+        if (getCommand("skills") != null) getCommand("skills").setExecutor(new SkillsCommand());
+        if (getCommand("highscore") != null) getCommand("highscore").setExecutor(new HighscoreCommand());
+        if (getCommand("togglenotifications") != null) getCommand("togglenotifications").setExecutor(new ToggleNotificationCommand());
+        if (getCommand("iaddithisskilling") != null) getCommand("iaddithisskilling").setExecutor(new ReloadCommand());
+        if (getCommand("resetskill") != null) getCommand("resetskill").setExecutor(new SkillResetCommand());
+        if (getCommand("skillsmenu") != null) getCommand("skillsmenu").setExecutor(new SkillsGuiCommand());
+        if (getCommand("untangle") != null) getCommand("untangle").setExecutor(new UntangleCommand());
 
-        // Start Highscore webserver via config
+        // Slayer shop & points
+        if (getCommand("slayershop") != null) getCommand("slayershop").setExecutor(new SlayerShopCommand());
+        if (getCommand("slayerpoints") != null) getCommand("slayerpoints").setExecutor(new SlayerPointsCommand());
+
+        // Slayer task manager
+        if (getCommand("slayer") != null) {
+            SlayerCommand slayerCmd = new SlayerCommand();
+            getCommand("slayer").setExecutor(slayerCmd);
+            getCommand("slayer").setTabCompleter(slayerCmd);
+        }
+
+        // Slayer shop editor command
+        if (getCommand("slayershopedit") != null) getCommand("slayershopedit").setExecutor(new SlayerShopEditorCommand());
+
+        // 8) Highscore webserver
         FileConfiguration cfg = getConfig();
         if (cfg.getBoolean("webserver.enabled", false)) {
             String address = cfg.getString("webserver.bind-address", "0.0.0.0");
@@ -74,7 +107,7 @@ public class IaddithisSkilling extends JavaPlugin {
             }
         }
 
-        getLogger().info("IaddithisSkilling enabled.");
+        getLogger().info("IaddithisSkilling enabled successfully.");
     }
 
     @Override
