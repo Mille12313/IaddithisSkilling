@@ -46,17 +46,24 @@ public class IaddithisSkilling extends JavaPlugin {
         }
         salvageConfig = YamlConfiguration.loadConfiguration(salvageFile);
 
-        // 4) SkillManager XP-table init (optional refactor)
+        // 4) SkillManager XP-table init
         try {
             SkillManager.init(getConfig());
         } catch (Throwable t) {
             getLogger().warning("SkillManager.init skipped or failed: " + t.getMessage());
         }
 
+        // 4b) EXP Boost service init (double-XP e.d.)
+        try {
+            ExpBoostService.init();
+        } catch (Throwable t) {
+            getLogger().warning("ExpBoostService.init failed: " + t.getMessage());
+        }
+
         // 5) Slayer service (slayer.yml) + GUIs
         SlayerService.init();
         getServer().getPluginManager().registerEvents(new SlayerShopGUI(), this);
-        getServer().getPluginManager().registerEvents(new SlayerShopEditorGUI(), this); // <--- editor listener
+        getServer().getPluginManager().registerEvents(new SlayerShopEditorGUI(), this); // editor listener
 
         // 5b) Slayer kills (MythicMobs only)
         if (getServer().getPluginManager().isPluginEnabled("MythicMobs")) {
@@ -65,23 +72,29 @@ public class IaddithisSkilling extends JavaPlugin {
             getLogger().info("MythicMobs not found: Slayer tasks will not track progress.");
         }
 
-        // 6) Other listeners
+        // 6) Other listeners (SkillEvents bevat Mythic-bridge via reflection)
         getServer().getPluginManager().registerEvents(new SkillEvents(), this);
         getServer().getPluginManager().registerEvents(new SkillsGuiCommand(), this);
         getServer().getPluginManager().registerEvents(new SalvageCauldronListener(), this);
 
         // 7) Commands
-        if (getCommand("skills") != null) getCommand("skills").setExecutor(new SkillsCommand());
-        if (getCommand("highscore") != null) getCommand("highscore").setExecutor(new HighscoreCommand());
-        if (getCommand("togglenotifications") != null) getCommand("togglenotifications").setExecutor(new ToggleNotificationCommand());
-        if (getCommand("iaddithisskilling") != null) getCommand("iaddithisskilling").setExecutor(new ReloadCommand());
-        if (getCommand("resetskill") != null) getCommand("resetskill").setExecutor(new SkillResetCommand());
-        if (getCommand("skillsmenu") != null) getCommand("skillsmenu").setExecutor(new SkillsGuiCommand());
-        if (getCommand("untangle") != null) getCommand("untangle").setExecutor(new UntangleCommand());
+        if (getCommand("skills") != null)               getCommand("skills").setExecutor(new SkillsCommand());
+        if (getCommand("highscore") != null)            getCommand("highscore").setExecutor(new HighscoreCommand());
+        if (getCommand("togglenotifications") != null)  getCommand("togglenotifications").setExecutor(new ToggleNotificationCommand());
+        if (getCommand("iaddithisskilling") != null)    getCommand("iaddithisskilling").setExecutor(new ReloadCommand());
+        if (getCommand("resetskill") != null)           getCommand("resetskill").setExecutor(new SkillResetCommand());
+        if (getCommand("skillsmenu") != null)           getCommand("skillsmenu").setExecutor(new SkillsGuiCommand());
+        if (getCommand("untangle") != null)             getCommand("untangle").setExecutor(new UntangleCommand());
+
+        // Skill XP command (MythicMobs nodes → directe XP + popup)
+        if (getCommand("skillxp") != null)              getCommand("skillxp").setExecutor(new SkillXpCommand());
+
+        // ★ Nieuw: EXP boost command
+        if (getCommand("expboost") != null)             getCommand("expboost").setExecutor(new ExpBoostCommand());
 
         // Slayer shop & points
-        if (getCommand("slayershop") != null) getCommand("slayershop").setExecutor(new SlayerShopCommand());
-        if (getCommand("slayerpoints") != null) getCommand("slayerpoints").setExecutor(new SlayerPointsCommand());
+        if (getCommand("slayershop") != null)           getCommand("slayershop").setExecutor(new SlayerShopCommand());
+        if (getCommand("slayerpoints") != null)         getCommand("slayerpoints").setExecutor(new SlayerPointsCommand());
 
         // Slayer task manager
         if (getCommand("slayer") != null) {
@@ -91,7 +104,7 @@ public class IaddithisSkilling extends JavaPlugin {
         }
 
         // Slayer shop editor command
-        if (getCommand("slayershopedit") != null) getCommand("slayershopedit").setExecutor(new SlayerShopEditorCommand());
+        if (getCommand("slayershopedit") != null)       getCommand("slayershopedit").setExecutor(new SlayerShopEditorCommand());
 
         // 8) Highscore webserver
         FileConfiguration cfg = getConfig();
@@ -113,6 +126,10 @@ public class IaddithisSkilling extends JavaPlugin {
     @Override
     public void onDisable() {
         saveData();
+
+        try {
+            ExpBoostService.shutdown();
+        } catch (Throwable ignored) {}
 
         if (webServer != null) {
             webServer.stop();

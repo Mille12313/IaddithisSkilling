@@ -17,49 +17,44 @@ public class SlayerShopGUI implements Listener {
 
     private static final String TITLE = ChatColor.DARK_RED + "Slayer Shop";
     private static final int SIZE = 54;
-    private static final int PREV_SLOT = 45;
-    private static final int NEXT_SLOT = 53;
 
-    private static final Map<UUID, Integer> currentPage = new HashMap<>();
-
+    /** Static shim zodat je vanuit commands statisch kunt openen. */
     public static void open(Player p, int page) {
-        page = Math.max(1, page);
-        currentPage.put(p.getUniqueId(), page);
+        new SlayerShopGUI().openFor(p); // we pagineren niet; 'page' wordt genegeerd
+    }
 
-        // **Altijd** verse config lezen
-        SlayerService.reloadFromDisk();
-
-        Inventory inv = Bukkit.createInventory(p, SIZE, TITLE + " §8(p." + page + ")");
+    /** Eigenlijke open logica (instantie-methode). */
+    public void openFor(Player p) {
+        Inventory inv = Bukkit.createInventory(new SlayerShopHolder(), SIZE, TITLE);
 
         // background
         ItemStack pane = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
-        ItemMeta pm = pane.getItemMeta();
-        pm.setDisplayName(" ");
-        pane.setItemMeta(pm);
+        ItemMeta pm = pane.getItemMeta(); pm.setDisplayName(" "); pane.setItemMeta(pm);
         for (int i = 0; i < SIZE; i++) inv.setItem(i, pane);
 
-        inv.setItem(PREV_SLOT, makeItem(Material.ARROW, ChatColor.YELLOW + "Previous page"));
-        inv.setItem(NEXT_SLOT, makeItem(Material.ARROW, ChatColor.YELLOW + "Next page"));
+        // place purchasable items by slot 0..44
+        Map<Integer, Map<String,Object>> bySlot = SlayerService.shopBySlot();
+        for (int slot = 0; slot < 45; slot++) {
+            Map<String,Object> m = bySlot.get(slot);
+            if (m == null) continue;
 
-        List<Map<String,Object>> list = SlayerService.shop();
-        final int perPage = 45;
-        int start = (page - 1) * perPage;
-        int end = Math.min(list.size(), start + perPage);
+            int price = toInt(m.get("price"), 0);
+            ItemStack base = SlayerService.entryToItem(m);
+            if (base == null || base.getType() == Material.AIR) continue;
 
-        for (int i = start, slot = 0; i < end && slot < 45; i++, slot++) {
-            Map<String,Object> m = list.get(i);
-            String key = String.valueOf(m.get("key"));
-            int price = intOf(m.get("price"), 0);
-
-            ItemStack icon = SlayerService.entryToItem(m);
-            if (icon == null || icon.getType() == Material.AIR) icon = new ItemStack(Material.BARRIER);
-
+            ItemStack icon = base.clone();
             ItemMeta meta = icon.getItemMeta();
-            meta.setDisplayName(ChatColor.GOLD + key);
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Price: " + ChatColor.GOLD + price + " pts");
+            if (meta == null) meta = Bukkit.getItemFactory().getItemMeta(icon.getType());
+
+            // Keep real name if present, else pretty material
+            if (!meta.hasDisplayName()) {
+                meta.setDisplayName(ChatColor.YELLOW + prettyMaterial(icon.getType()));
+            }
+
+            // Append price line
+            List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
             lore.add("");
-            lore.add(ChatColor.GREEN + "Click to buy");
+            lore.add(ChatColor.GOLD + "Cost: " + price + " Slayer Points");
             meta.setLore(lore);
             icon.setItemMeta(meta);
 
@@ -69,81 +64,61 @@ public class SlayerShopGUI implements Listener {
         p.openInventory(inv);
     }
 
-    private static ItemStack makeItem(Material mat, String name, String... lore) {
-        ItemStack it = new ItemStack(mat);
-        ItemMeta im = it.getItemMeta();
-        im.setDisplayName(name);
-        if (lore != null && lore.length > 0) im.setLore(Arrays.asList(lore));
-        it.setItemMeta(im);
-        return it;
-    }
-
-    private static boolean isShop(InventoryView view) {
-        return view != null && view.getTitle() != null && view.getTitle().startsWith(TITLE);
-    }
-
-    private static int pageOf(Player p) {
-        return currentPage.getOrDefault(p.getUniqueId(), 1);
-    }
-
-    private static int intOf(Object o, int def) {
-        try { return Integer.parseInt(String.valueOf(o)); } catch (Exception e) { return def; }
-    }
-
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!isShop(e.getView())) return;
+        if (!(e.getInventory().getHolder() instanceof SlayerShopHolder)) return;
+        int raw = e.getRawSlot();
+        if (raw >= SIZE) return; // bottom inventory allowed
+        e.setCancelled(true);
+
+        if (raw < 0 || raw >= 45) return; // ignore border
 
         Player p = (Player) e.getWhoClicked();
-        int raw = e.getRawSlot();
+        Map<String,Object> item = SlayerService.findShopItemBySlot(raw);
+        if (item == null) return;
 
-        // Block top inv edits
-        if (raw < SIZE) {
-            e.setCancelled(true);
-
-            if (raw == PREV_SLOT) { open(p, Math.max(1, pageOf(p) - 1)); return; }
-            if (raw == NEXT_SLOT) { open(p, pageOf(p) + 1); return; }
-
-            // Buy flow
-            if (raw >= 0 && raw < 45) {
-                // Determine which entry
-                List<Map<String,Object>> list = SlayerService.shop();
-                int index = (pageOf(p) - 1) * 45 + raw;
-                if (index < 0 || index >= list.size()) return;
-
-                Map<String,Object> entry = list.get(index);
-                int price = intOf(entry.get("price"), 0);
-
-                if (!SlayerService.spendPoints(p.getUniqueId(), price)) {
-                    p.sendMessage(ChatColor.RED + "Not enough Slayer points.");
-                    p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
-                    return;
-                }
-
-                // Give item
-                ItemStack item = SlayerService.entryToItem(entry);
-                HashMap<Integer, ItemStack> left = p.getInventory().addItem(item);
-                if (!left.isEmpty()) { // inventory full -> drop
-                    left.values().forEach(it -> p.getWorld().dropItemNaturally(p.getLocation(), it));
-                }
-
-                p.sendMessage(ChatColor.GREEN + "Purchased for " + price + " pts.");
-                p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
-                // Re-open to reflect any dynamic changes
-                open(p, pageOf(p));
-            }
+        int price = toInt(item.get("price"), 0);
+        int points = SlayerService.getPoints(p.getUniqueId());
+        if (points < price) {
+            p.sendMessage(ChatColor.RED + "Not enough Slayer points. You need " + price + ", you have " + points + ".");
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.6f, 0.7f);
             return;
         }
 
-        // Player inv shift-moves into top: block
-        if (e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) e.setCancelled(true);
+        ItemStack give = SlayerService.entryToItem(item);
+        if (give == null || give.getType() == Material.AIR) {
+            p.sendMessage(ChatColor.RED + "This item is currently unavailable.");
+            return;
+        }
+
+        // Try to add; drop overflow
+        Map<Integer, ItemStack> over = p.getInventory().addItem(give);
+        over.values().forEach(st -> p.getWorld().dropItemNaturally(p.getLocation(), st));
+
+        SlayerService.spendPoints(p.getUniqueId(), price);
+        p.sendMessage(ChatColor.GREEN + "Purchased for " + ChatColor.GOLD + price + ChatColor.GREEN + " Slayer points.");
+        p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.2f);
     }
 
     @EventHandler
     public void onDrag(InventoryDragEvent e) {
-        if (!isShop(e.getView())) return;
+        if (!(e.getInventory().getHolder() instanceof SlayerShopHolder)) return;
+        // Block dragging into shop
         for (int slot : e.getRawSlots()) {
             if (slot < SIZE) { e.setCancelled(true); return; }
         }
+    }
+
+    private static int toInt(Object o, int def) {
+        try { return Integer.parseInt(String.valueOf(o)); } catch (Exception e) { return def; }
+    }
+
+    private static String prettyMaterial(Material m) {
+        String n = m.name().toLowerCase(Locale.ROOT).replace('_',' ');
+        return Character.toUpperCase(n.charAt(0)) + n.substring(1);
+    }
+
+    public static class SlayerShopHolder implements InventoryHolder {
+        @Override public Inventory getInventory() { return null; }
     }
 }

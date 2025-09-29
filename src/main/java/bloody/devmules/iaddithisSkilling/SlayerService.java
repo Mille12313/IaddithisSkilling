@@ -49,16 +49,13 @@ public final class SlayerService {
     public static synchronized void saveSlayerFile() {
         try {
             slayerCfg.save(slayerFile);
-            // direct herladen zodat GUIs de nieuwe data zien
-            reloadFromDisk();
+            reloadFromDisk(); // so GUIs see fresh data
         } catch (Exception e) {
             IaddithisSkilling.getInstance().getLogger().severe("Failed to save slayer.yml: " + e.getMessage());
         }
     }
 
-    public static FileConfiguration cfg() {
-        return slayerCfg;
-    }
+    public static FileConfiguration cfg() { return slayerCfg; }
 
     // ---------- Data in data.yml ----------
     public static SlayerState getState(UUID uuid) {
@@ -89,7 +86,6 @@ public final class SlayerService {
         inst.saveData();
     }
 
-    // Points helpers
     public static int getPoints(UUID uuid) {
         var data = IaddithisSkilling.getInstance().getData();
         return data.getInt("slayer." + uuid + ".points", 0);
@@ -116,7 +112,6 @@ public final class SlayerService {
         return true;
     }
 
-    // ---------- Safe list conversion ----------
     private static List<Map<String, Object>> toStringObjectMapList(List<Map<?, ?>> raw) {
         List<Map<String, Object>> out = new ArrayList<>();
         if (raw == null) return out;
@@ -181,6 +176,7 @@ public final class SlayerService {
     }
 
     // ---------- Shop (read) ----------
+    /** Full raw list (no guaranteed order). */
     public static List<Map<String, Object>> shop() {
         return toStringObjectMapList(slayerCfg.getMapList("shop"));
     }
@@ -193,8 +189,40 @@ public final class SlayerService {
         return null;
     }
 
+    /** Build slot -> entry map from "slot" fields (0..44). */
+    public static Map<Integer, Map<String, Object>> shopBySlot() {
+        Map<Integer, Map<String, Object>> map = new HashMap<>();
+        for (var m : shop()) {
+            int slot = toInt(m.get("slot"), -1);
+            if (slot >= 0 && slot < 45) {
+                map.put(slot, m);
+            }
+        }
+        return map;
+    }
+
+    public static Map<String, Object> findShopItemBySlot(int slot) {
+        if (slot < 0 || slot >= 45) return null;
+        for (var m : shop()) {
+            int s = toInt(m.get("slot"), -1);
+            if (s == slot) return m;
+        }
+        return null;
+    }
+
+    /** First free slot 0..44, or -1 if full. */
+    public static int nextFreeSlot() {
+        boolean[] used = new boolean[45];
+        for (var m : shop()) {
+            int s = toInt(m.get("slot"), -1);
+            if (s >= 0 && s < 45) used[s] = true;
+        }
+        for (int i = 0; i < 45; i++) if (!used[i]) return i;
+        return -1;
+    }
+
     // ---------- Shop (write CRUD) ----------
-    /** Add new or replace existing (by 'key'). */
+    /** Add new or replace existing (by 'key'). Keeps existing 'slot' if present. */
     public static void addOrReplaceShopItem(Map<String,Object> entry) {
         if (entry == null) return;
         String key = String.valueOf(entry.get("key"));
@@ -204,6 +232,10 @@ public final class SlayerService {
         boolean replaced = false;
         for (int i = 0; i < list.size(); i++) {
             if (key.equalsIgnoreCase(String.valueOf(list.get(i).get("key")))) {
+                // preserve slot if new entry forgot it
+                if (!entry.containsKey("slot") && list.get(i).containsKey("slot")) {
+                    entry.put("slot", list.get(i).get("slot"));
+                }
                 list.set(i, entry);
                 replaced = true;
                 break;
@@ -222,7 +254,56 @@ public final class SlayerService {
         return removed;
     }
 
-    // ---------- Serialization helpers (complex items zoals tipped arrows) ----------
+    /** Assign/modify a specific slot for an entry by key. */
+    public static boolean setShopItemSlot(String key, int slot) {
+        if (key == null || slot < 0 || slot >= 45) return false;
+        List<Map<String,Object>> list = shop();
+        boolean changed = false;
+
+        // clear any other entry currently using this slot
+        for (var m : list) {
+            int s = toInt(m.get("slot"), -1);
+            if (s == slot && !key.equalsIgnoreCase(String.valueOf(m.get("key")))) {
+                m.remove("slot");
+                changed = true;
+            }
+        }
+
+        for (var m : list) {
+            if (key.equalsIgnoreCase(String.valueOf(m.get("key")))) {
+                m.put("slot", slot);
+                changed = true;
+                break;
+            }
+        }
+
+        if (changed) slayerCfg.set("shop", list);
+        return changed;
+    }
+
+    /** Swap slots between two existing keys. */
+    public static boolean swapShopItemSlots(String keyA, String keyB) {
+        if (keyA == null || keyB == null || keyA.equalsIgnoreCase(keyB)) return false;
+        List<Map<String,Object>> list = shop();
+
+        Map<String,Object> a = null, b = null;
+        for (var m : list) {
+            String k = String.valueOf(m.get("key"));
+            if (k == null) continue;
+            if (k.equalsIgnoreCase(keyA)) a = m;
+            else if (k.equalsIgnoreCase(keyB)) b = m;
+        }
+        if (a == null || b == null) return false;
+
+        int sa = toInt(a.get("slot"), -1);
+        int sb = toInt(b.get("slot"), -1);
+        a.put("slot", sb);
+        b.put("slot", sa);
+        slayerCfg.set("shop", list);
+        return true;
+    }
+
+    // ---------- Serialization helpers ----------
     public static boolean isComplex(ItemStack item) {
         if (item == null) return false;
         if (item.getType().name().contains("POTION")) return true;
@@ -259,17 +340,16 @@ public final class SlayerService {
     }
 
     /**
-     * Bouw een shop-entry uit een ItemStack:
-     * - ItemsAdder ID (type=itemsadder) als mogelijk
-     * - Vanilla (type=vanilla) voor simpele items
-     * - Serialized base64 (type=serialized) voor items met complexe meta
+     * Build a shop entry from an ItemStack:
+     *  - ItemsAdder (type=itemsadder) if available
+     *  - Vanilla (type=vanilla) for simple items
+     *  - Serialized base64 (type=serialized) for items with complex meta
      */
     public static Map<String,Object> entryFromItem(String key, int price, ItemStack base) {
         Map<String,Object> m = new LinkedHashMap<>();
         m.put("key", key);
         m.put("price", price);
 
-        // ItemsAdder?
         if (Bukkit.getPluginManager().isPluginEnabled("ItemsAdder")) {
             try {
                 dev.lone.itemsadder.api.CustomStack cs = dev.lone.itemsadder.api.CustomStack.byItemStack(base);
@@ -292,14 +372,13 @@ public final class SlayerService {
             }
         }
 
-        // vanilla fallback
         m.put("type", "vanilla");
         m.put("material", base.getType().name());
         m.put("amount", Math.max(1, base.getAmount()));
         return m;
     }
 
-    /** Zet entry om naar een ItemStack voor weergave/uitgifte. */
+    /** Convert entry back to stack for display/issue. */
     public static ItemStack entryToItem(Map<String,Object> m) {
         String type = String.valueOf(m.get("type")).toLowerCase(Locale.ROOT);
         int amount = toInt(m.get("amount"), 1);

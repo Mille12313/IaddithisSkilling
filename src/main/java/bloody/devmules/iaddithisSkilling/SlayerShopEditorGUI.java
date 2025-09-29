@@ -1,6 +1,5 @@
 package bloody.devmules.iaddithisSkilling;
 
-import dev.lone.itemsadder.api.CustomStack;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -26,6 +25,7 @@ public class SlayerShopEditorGUI implements Listener {
     private static final Map<UUID, Integer> currentPage = new HashMap<>();
     private static final Map<UUID, PendingCreate> pendingCreate = new HashMap<>();
     private static final Map<UUID, PendingEdit> pendingEdit = new HashMap<>();
+    private static final Map<UUID, Integer> moveSourceSlot = new HashMap<>(); // selected source (0..44)
 
     private enum EditField { PRICE, AMOUNT }
 
@@ -42,7 +42,6 @@ public class SlayerShopEditorGUI implements Listener {
         PendingEdit(String key, EditField field) { this.key = key; this.field = field; }
     }
 
-    // -------- Public: open GUI --------
     public static void openEditor(Player p, int page) {
         page = Math.max(1, page);
         currentPage.put(p.getUniqueId(), page);
@@ -51,9 +50,7 @@ public class SlayerShopEditorGUI implements Listener {
 
         // background
         ItemStack pane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta pm = pane.getItemMeta();
-        pm.setDisplayName(" ");
-        pane.setItemMeta(pm);
+        ItemMeta pm = pane.getItemMeta(); pm.setDisplayName(" "); pane.setItemMeta(pm);
         for (int i = 0; i < SIZE; i++) inv.setItem(i, pane);
 
         inv.setItem(PREV_SLOT, makeItem(Material.ARROW, ChatColor.YELLOW + "Previous page"));
@@ -66,48 +63,58 @@ public class SlayerShopEditorGUI implements Listener {
                 ChatColor.DARK_GRAY + "You will set key & price via chat"
         ));
 
-        // list entries (0..44 content)
-        List<Map<String,Object>> list = SlayerService.shop();
-        final int perPage = 45;
-        int start = (page - 1) * perPage;
-        int end = Math.min(list.size(), start + perPage);
-
-        for (int i = start, slot = 0; i < end && slot < 45; i++, slot++) {
-            inv.setItem(slot, toIcon(list.get(i)));
+        // Place entries by saved slot (0..44)
+        Map<Integer, Map<String, Object>> bySlot = SlayerService.shopBySlot();
+        for (int slot = 0; slot < 45; slot++) {
+            Map<String,Object> m = bySlot.get(slot);
+            if (m != null) inv.setItem(slot, toIcon(m, slot));
         }
 
         p.openInventory(inv);
     }
 
-    // -------- Helpers --------
-    private static ItemStack toIcon(Map<String,Object> m) {
+    private static ItemStack toIcon(Map<String,Object> m, int slot) {
         String key = String.valueOf(m.get("key"));
         int price = toInt(m.get("price"), 0);
         int amount = toInt(m.get("amount"), 1);
 
-        // Gebruik de service voor correcte reconstructie (itemsadder/serialized/vanilla)
         ItemStack icon = SlayerService.entryToItem(m);
         if (icon == null || icon.getType() == Material.AIR) icon = new ItemStack(Material.BARRIER);
         icon.setAmount(Math.max(1, amount));
 
         ItemMeta meta = icon.getItemMeta();
-        meta.setDisplayName(ChatColor.YELLOW + key);
 
+        // Use real item name if present; if none, show material; also show key subtly
+        String realName = (meta != null && meta.hasDisplayName())
+                ? ChatColor.RESET + meta.getDisplayName()
+                : ChatColor.YELLOW + prettyMaterial(icon.getType());
+        String title = realName;
+        if (meta == null) meta = icon.getItemMeta();
+        meta.setDisplayName(title);
+
+        List<String> lore = (meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>());
+
+        lore.add(ChatColor.DARK_GRAY + "— key: " + key + " (slot " + slot + ")");
         String type = String.valueOf(m.get("type")).toLowerCase(Locale.ROOT);
-        List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "type: " + type);
-        if ("itemsadder".equals(type)) lore.add(ChatColor.GRAY + "id: " + String.valueOf(m.get("id")));
-        if ("vanilla".equals(type))    lore.add(ChatColor.GRAY + "material: " + String.valueOf(m.get("material")));
-        if (m.containsKey("commands")) lore.add(ChatColor.GRAY + "commands: " + ChatColor.DARK_GRAY + "(list)");
-        if ("serialized".equals(type)) lore.add(ChatColor.DARK_GRAY + "(custom meta preserved)");
-        lore.add(ChatColor.GOLD + "price: " + price + " pts   " + ChatColor.GRAY + "amount: " + amount);
+        if ("itemsadder".equals(type)) lore.add(ChatColor.DARK_GRAY + "itemsadder: " + String.valueOf(m.get("id")));
+        if ("vanilla".equals(type))    lore.add(ChatColor.DARK_GRAY + "vanilla: " + String.valueOf(m.get("material")));
+        if ("serialized".equals(type)) lore.add(ChatColor.DARK_GRAY + "custom meta preserved");
+        lore.add("");
+        lore.add(ChatColor.GOLD + "Price: " + price + " pts   " + ChatColor.GRAY + "Amount: " + amount);
         lore.add("");
         lore.add(ChatColor.GREEN + "Left-click: edit price");
         lore.add(ChatColor.AQUA + "Shift-left: edit amount");
         lore.add(ChatColor.RED + "Right-click: delete");
+        lore.add(ChatColor.YELLOW + "Q (Drop): select to move");
+
         meta.setLore(lore);
         icon.setItemMeta(meta);
         return icon;
+    }
+
+    private static String prettyMaterial(Material m) {
+        String n = m.name().toLowerCase(Locale.ROOT).replace('_',' ');
+        return Character.toUpperCase(n.charAt(0)) + n.substring(1);
     }
 
     private static ItemStack makeItem(Material mat, String name, String... lore) {
@@ -131,33 +138,31 @@ public class SlayerShopEditorGUI implements Listener {
         return currentPage.getOrDefault(p.getUniqueId(), 1);
     }
 
-    // -------- Click handling --------
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         if (!isEditor(e.getInventory())) return;
-
         final Player p = (Player) e.getWhoClicked();
         final int raw = e.getRawSlot();
 
-        // Cancel ALL interactions into the top inventory by default
+        // Cancel all top inv interactions by default
         if (raw < SIZE) {
             e.setCancelled(true);
 
             if (raw == PREV_SLOT) { openEditor(p, Math.max(1, pageOf(p) - 1)); return; }
             if (raw == NEXT_SLOT) { openEditor(p, pageOf(p) + 1); return; }
 
-            // Create via DROP_SLOT (cursor / number key / offhand handled here)
+            // DROP_SLOT: create via cursor/number-key/offhand
             if (raw == DROP_SLOT) {
                 ItemStack source = null;
 
-                // 1) Cursor
+                // Cursor
                 ItemStack cursor = e.getCursor();
                 if (cursor != null && !cursor.getType().isAir()) {
                     source = cursor.clone();
                     p.setItemOnCursor(null);
                 }
 
-                // 2) Number-key hotbar swap
+                // Number key swap
                 if (source == null && e.getClick().isKeyboardClick() && e.getHotbarButton() >= 0) {
                     ItemStack hot = p.getInventory().getItem(e.getHotbarButton());
                     if (hot != null && !hot.getType().isAir()) {
@@ -166,7 +171,7 @@ public class SlayerShopEditorGUI implements Listener {
                     }
                 }
 
-                // 3) Offhand swap
+                // Offhand swap
                 if (source == null && e.getClick() == ClickType.SWAP_OFFHAND) {
                     ItemStack off = p.getInventory().getItemInOffHand();
                     if (off != null && !off.getType().isAir()) {
@@ -184,27 +189,74 @@ public class SlayerShopEditorGUI implements Listener {
                 return;
             }
 
-            // Existing entries 0..44
+            // Moving logic first (Q to select, then click any target 0..44)
             if (raw >= 0 && raw < 45) {
-                ItemStack clicked = e.getCurrentItem();
-                if (clicked == null || clicked.getType().isAir()) return;
+                // Q (drop key) on a slot = select/unselect as source
+                if (e.getClick() == ClickType.DROP) {
+                    if (e.getCurrentItem() == null || e.getCurrentItem().getType().isAir()) {
+                        p.sendMessage(ChatColor.RED + "No item in this slot to move.");
+                        return;
+                    }
+                    moveSourceSlot.put(p.getUniqueId(), raw);
+                    p.sendMessage(ChatColor.YELLOW + "Selected slot " + raw + ". Click a target slot (empty or occupied) to move/swap.");
+                    return;
+                }
 
-                String key = ChatColor.stripColor(
-                        Optional.ofNullable(clicked.getItemMeta()).map(ItemMeta::getDisplayName).orElse("")
-                );
-                if (key == null || key.isEmpty()) return;
+                Integer src = moveSourceSlot.get(p.getUniqueId());
+                if (src != null) {
+                    int dst = raw;
+                    // Get entries by slot
+                    Map<String,Object> srcEntry = SlayerService.findShopItemBySlot(src);
+                    if (srcEntry == null) {
+                        moveSourceSlot.remove(p.getUniqueId());
+                        p.sendMessage(ChatColor.RED + "Source entry vanished. Try again.");
+                        openEditor(p, pageOf(p));
+                        return;
+                    }
+                    Map<String,Object> dstEntry = SlayerService.findShopItemBySlot(dst);
+
+                    if (dstEntry == null) {
+                        // Move to empty slot
+                        boolean ok = SlayerService.setShopItemSlot(String.valueOf(srcEntry.get("key")), dst);
+                        SlayerService.saveSlayerFile();
+                        p.sendMessage(ok ? ChatColor.GREEN + "Moved to slot " + dst + "."
+                                : ChatColor.RED + "Could not move.");
+                    } else {
+                        // Swap
+                        boolean ok = SlayerService.swapShopItemSlots(String.valueOf(srcEntry.get("key")),
+                                String.valueOf(dstEntry.get("key")));
+                        SlayerService.saveSlayerFile();
+                        p.sendMessage(ok ? ChatColor.GREEN + "Swapped slots " + src + " ↔ " + dst + "."
+                                : ChatColor.RED + "Could not swap.");
+                    }
+                    moveSourceSlot.remove(p.getUniqueId());
+                    openEditor(p, pageOf(p));
+                    return;
+                }
+
+                // No move in progress → edit/delete
+                ItemStack clicked = e.getCurrentItem();
+                if (clicked == null || clicked.getType().isAir()) {
+                    // empty tile click does nothing
+                    return;
+                }
+
+                // Extract the key we embedded in lore/title is unreliable if renamed;
+                // safer: look up entry by slot
+                Map<String,Object> m = SlayerService.findShopItemBySlot(raw);
+                if (m == null) return;
+                String key = String.valueOf(m.get("key"));
 
                 if (e.isRightClick()) {
                     boolean ok = SlayerService.deleteShopItemByKey(key);
-                    SlayerService.saveSlayerFile(); // save + reload
-                    p.sendMessage(ok ? ChatColor.GREEN + "Deleted shop item '" + key + "'." :
-                            ChatColor.RED + "Could not delete '" + key + "'.");
+                    SlayerService.saveSlayerFile();
+                    p.sendMessage(ok ? ChatColor.GREEN + "Deleted '" + key + "'."
+                            : ChatColor.RED + "Could not delete '" + key + "'.");
                     openEditor(p, pageOf(p));
                     return;
                 }
 
                 if (e.isLeftClick() && e.isShiftClick()) {
-                    // edit amount
                     pendingEdit.put(p.getUniqueId(), new PendingEdit(key, EditField.AMOUNT));
                     p.closeInventory();
                     p.sendMessage(ChatColor.AQUA + "Editing amount for '" + key + "'. Type the new amount (integer) in chat.");
@@ -212,33 +264,25 @@ public class SlayerShopEditorGUI implements Listener {
                 }
 
                 if (e.isLeftClick()) {
-                    // edit price
                     pendingEdit.put(p.getUniqueId(), new PendingEdit(key, EditField.PRICE));
                     p.closeInventory();
                     p.sendMessage(ChatColor.GREEN + "Editing price for '" + key + "'. Type the new price (integer points) in chat.");
                     return;
                 }
             }
+
             return;
         }
 
-        // Bottom inventory while editor open:
-        // Block shift-click to top
-        if (e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-            e.setCancelled(true);
-        }
-        // Block keyboard swaps by default (we only allow when clicking DROP_SLOT)
-        if (e.getClick().isKeyboardClick()) {
-            e.setCancelled(true);
-        }
+        // bottom inv: block shift-click to top / keyboard swaps
+        if (e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) e.setCancelled(true);
+        if (e.getClick().isKeyboardClick()) e.setCancelled(true);
     }
 
-    // -------- Drag handling (supports dropping onto the hopper) --------
     @EventHandler
     public void onDrag(InventoryDragEvent e) {
         if (!isEditor(e.getInventory())) return;
 
-        // If drag targets any top slot other than the DROP_SLOT -> cancel
         boolean targetsTop = false;
         for (int slot : e.getRawSlots()) {
             if (slot < SIZE) {
@@ -248,7 +292,6 @@ public class SlayerShopEditorGUI implements Listener {
         }
         if (!targetsTop) return;
 
-        // Drag onto DROP_SLOT: start create flow with old cursor item
         if (e.getRawSlots().contains(DROP_SLOT)) {
             e.setCancelled(true);
             Player p = (Player) e.getWhoClicked();
@@ -257,7 +300,6 @@ public class SlayerShopEditorGUI implements Listener {
                 p.sendMessage(ChatColor.GRAY + "Drag the item from your cursor onto the hopper.");
                 return;
             }
-            // clear cursor now (sync)
             p.setItemOnCursor(null);
             startCreateFlow(p, base.clone());
         }
@@ -274,15 +316,14 @@ public class SlayerShopEditorGUI implements Listener {
     @EventHandler
     public void onClose(InventoryCloseEvent e) {
         if (!isEditor(e.getInventory())) return;
-        // nothing needed
+        // nothing
     }
 
-    // -------- Chat prompts --------
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
         UUID u = e.getPlayer().getUniqueId();
 
-        // 1) Create flow
+        // Create flow
         PendingCreate pc = pendingCreate.get(u);
         if (pc != null) {
             e.setCancelled(true);
@@ -312,17 +353,23 @@ public class SlayerShopEditorGUI implements Listener {
                 final int fPrice = price;
                 Bukkit.getScheduler().runTask(IaddithisSkilling.getInstance(), () -> {
                     Map<String,Object> entry = SlayerService.entryFromItem(pc.key, fPrice, pc.base);
+
+                    // assign first free slot
+                    int slot = SlayerService.nextFreeSlot();
+                    if (slot >= 0) entry.put("slot", slot);
+
                     SlayerService.addOrReplaceShopItem(entry);
-                    SlayerService.saveSlayerFile(); // save + reload
+                    SlayerService.saveSlayerFile();
                     pendingCreate.remove(u);
-                    e.getPlayer().sendMessage(ChatColor.GREEN + "Saved shop entry '" + pc.key + "' (" + fPrice + " pts).");
+                    e.getPlayer().sendMessage(ChatColor.GREEN + "Saved '" + pc.key + "' (" + fPrice + " pts)"
+                            + (slot >= 0 ? " at slot " + slot : " (no free slot; not placed)"));
                     openEditor(e.getPlayer(), 1);
                 });
                 return;
             }
         }
 
-        // 2) Edit flow (price/amount)
+        // Edit flow
         PendingEdit pe = pendingEdit.get(u);
         if (pe != null) {
             e.setCancelled(true);
@@ -354,8 +401,8 @@ public class SlayerShopEditorGUI implements Listener {
                     e.getPlayer().sendMessage(ChatColor.AQUA + "Amount of '" + pe.key + "' set to " + Math.max(1, fVal) + ".");
                 }
 
-                SlayerService.addOrReplaceShopItem(item); // persists & replaces by key
-                SlayerService.saveSlayerFile();           // save + reload
+                SlayerService.addOrReplaceShopItem(item);
+                SlayerService.saveSlayerFile();
                 pendingEdit.remove(u);
                 openEditor(e.getPlayer(), 1);
             });

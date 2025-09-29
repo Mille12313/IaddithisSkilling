@@ -47,6 +47,17 @@ commands:
     permission: iaddithisskilling.slayer.use
     usage: /slayer <new|task|skip|cancel>
     aliases: [slay]
+  skillxp:
+    description: Give skill XP to a player
+    usage: /skillxp <player> <SKILL> <amount>
+    permission: iaddithisskilling.skillxp
+    permission-message: You don't have permission.
+
+  expboost:
+    description: Toggle or set global EXP multiplier
+    usage: /expboost <on|off|set|status> [args]
+    permission: iaddithisskilling.expboost
+    permission-message: You don't have permission.
 
   # Ingame shop editor
   slayershopedit:
@@ -57,6 +68,9 @@ commands:
 permissions:
   iaddithisskilling.reload:
     description: Allows reloading the plugin.
+    default: op
+
+  iaddithisskilling.expboost:
     default: op
 
   iaddithisskilling.resetskill:
