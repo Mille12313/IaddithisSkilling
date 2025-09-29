@@ -157,20 +157,34 @@ public final class SlayerService {
         return slayerCfg.getInt("settings.skipCost", 30);
     }
 
+    /**
+     * Compute payout with streak bonus.
+     * - Bonus is only applied when streak >= fromStreak.
+     * - Bonus effect is CLAMPED by `maxStreak` from slayer.yml (default 10).
+     * - The streak value itself is NOT capped; only the bonus effect is.
+     */
     public static int computePayoutWithStreak(int base, int streak, boolean skippedJustNow) {
         var sec = slayerCfg.getConfigurationSection("settings.streakBonus");
         if (sec == null || !sec.getBoolean("enabled", true)) return base;
 
         int from = sec.getInt("fromStreak", 3);
+        int maxStreak = sec.getInt("maxStreak", 10); // NEW: cap from config (defaults to 10)
+
         if (skippedJustNow) return base;
-        if (streak < from) return base;
+
+        // Only the bonus effect is capped at maxStreak
+        int effectiveStreak = Math.min(streak, Math.max(0, maxStreak));
+
+        if (effectiveStreak < from) return base;
 
         String type = sec.getString("bonusType", "flat").toLowerCase(Locale.ROOT);
         if (type.equals("multiplier")) {
             double mul = sec.getDouble("multiplier", 1.0);
+            // multiplier is applied once when hitting the threshold; not scaled per streak
             return (int) Math.round(base * mul);
         } else {
             int flat = sec.getInt("flatAmount", 5);
+            // flat is applied once when hitting the threshold; not scaled per streak
             return base + flat;
         }
     }
